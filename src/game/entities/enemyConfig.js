@@ -1,0 +1,187 @@
+/**
+ * Enemy Configuration System
+ * All stats are defined as ratios that can be adjusted globally
+ * Base values serve as reference points (1.0 = base value)
+ */
+
+import { ITEM_TYPES } from "../config/itemConfig.js";
+
+const BASE_VALUES = {
+  health: 20,
+  speed: 100,
+  damage: 10,
+  radius: 12,
+  xp: 1,
+};
+
+/**
+ * Enemy configuration with all parameters as ratios
+ * ratio: relative frequency (sum of all ratios determines probability)
+ * stats: all values are multipliers of BASE_VALUES
+ * type: "melee" or "ranged"
+ * spriteName: nom de la spritesheet à utiliser (doit correspondre à spriteConfig.js)
+ * lootTable: items dropped with probabilities
+ */
+export const ENEMY_CONFIG = {
+  ratata: {
+    name: "Ratata",
+    ratio: 0.7,
+    type: "melee",
+    spriteName: "ratata",
+    scale: 2,
+    stats: {
+      health: 2,
+      speed: 1,
+      damage: 1.0,
+      radius: 1.0,
+      xp: 1.0,
+    },
+    lootTable: [{ itemType: ITEM_TYPES.RATATA_TAIL, chance: 0.1 }],
+  },
+
+  caterpie: {
+    name: "Caterpie",
+    ratio: 0.3,
+    type: "ranged",
+    spriteName: "caterpie",
+    scale: 1.5,
+    stats: {
+      health: 1,
+      speed: 0.3,
+      damage: 0.3,
+      radius: 1.15,
+      xp: 4.0,
+    },
+    ranged: {
+      projectileColor: "#afb5adff",
+      shootCooldown: 1.5,
+      shootRange: 300,
+      projectileSpeed: 250,
+      projectileDamage: 0.8, // ratio of base damage
+    },
+    lootTable: [],
+  },
+};
+
+/**
+ * Get computed stats for an enemy type
+ * @param {string} type - Enemy type key
+ * @returns {Object} Computed stats with actual values
+ */
+export function getEnemyStats(type) {
+  const config = ENEMY_CONFIG[type];
+  if (!config) {
+    console.warn(`Unknown enemy type: ${type}, using ratata`);
+    return getEnemyStats("ratata");
+  }
+
+  const stats = config.stats;
+  return {
+    maxHealth: Math.round(BASE_VALUES.health * stats.health),
+    speed: BASE_VALUES.speed * stats.speed,
+    damage: BASE_VALUES.damage * stats.damage,
+    radius: BASE_VALUES.radius * stats.radius,
+    xp: Math.round(BASE_VALUES.xp * stats.xp),
+    color: getEnemyColor(type),
+    outlineColor: getEnemyOutlineColor(type),
+  };
+}
+
+/**
+ * Get color for enemy type
+ * @param {string} type - Enemy type
+ * @returns {string} Hex color
+ */
+function getEnemyColor(type) {
+  const colors = {
+    ratata: "#F44336",
+    fast: "#FF9800",
+    tank: "#9C27B0",
+    shooter: "#2196F3",
+  };
+  return colors[type] || "#F44336";
+}
+
+/**
+ * Get outline color for enemy type
+ * @param {string} type - Enemy type
+ * @returns {string} Hex color
+ */
+function getEnemyOutlineColor(type) {
+  const colors = {
+    ratata: "#C62828",
+    fast: "#E65100",
+    tank: "#6A1B9A",
+    shooter: "#1565C0",
+  };
+  return colors[type] || "#C62828";
+}
+
+/**
+ * Get a random enemy type based on configured ratios
+ * @returns {string} Enemy type key
+ */
+export function getRandomEnemyType() {
+  const entries = Object.entries(ENEMY_CONFIG);
+  const totalRatio = entries.reduce(
+    (sum, [_, config]) => sum + config.ratio,
+    0
+  );
+
+  let rand = Math.random() * totalRatio;
+
+  for (const [type, config] of entries) {
+    rand -= config.ratio;
+    if (rand <= 0) {
+      return type;
+    }
+  }
+
+  return "ratata"; // Fallback
+}
+
+/**
+ * Get sprite config for enemy type
+ * @param {string} type - Enemy type
+ * @returns {Object} Sprite configuration with scale
+ */
+export function getEnemySpriteConfig(type) {
+  const config = ENEMY_CONFIG[type];
+  if (!config) return null;
+
+  return {
+    spriteName: config.spriteName,
+    scale: config.scale,
+  };
+}
+
+/**
+ * Get ranged config for enemy type (if applicable)
+ * @param {string} type - Enemy type
+ * @returns {Object|null} Ranged configuration or null if melee
+ */
+export function getEnemyRangedConfig(type) {
+  const config = ENEMY_CONFIG[type];
+  if (!config || config.type !== "ranged") return null;
+  return config.ranged;
+}
+
+/**
+ * Check if enemy type is ranged
+ * @param {string} type - Enemy type
+ * @returns {boolean} True if ranged
+ */
+export function isEnemyRanged(type) {
+  const config = ENEMY_CONFIG[type];
+  return config && config.type === "ranged";
+}
+
+/**
+ * Get enemy name
+ * @param {string} type - Enemy type
+ * @returns {string} Enemy name
+ */
+export function getEnemyName(type) {
+  const config = ENEMY_CONFIG[type];
+  return config ? config.name : "Unknown";
+}
