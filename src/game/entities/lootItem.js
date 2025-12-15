@@ -100,6 +100,10 @@ export class LootItem {
       // Check if collected
       if (dist < player.radius * 1.5) {
         this.active = false;
+        // Ajout à l'inventaire si possible
+        if (window.engine && window.engine.inventorySystem) {
+          window.engine.inventorySystem.addItem(this);
+        }
         return;
       }
     } else {

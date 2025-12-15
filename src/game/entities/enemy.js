@@ -2,7 +2,6 @@ import { normalize, distance } from "../../utils/math.js";
 import { spriteConfig, getDirectionRow } from "../sprites/spriteConfig.js";
 import { spriteManager } from "../sprites/spriteManager.js";
 import {
-  ENEMY_CONFIG,
   getEnemyStats,
   getEnemyRangedConfig,
   isEnemyRanged,
@@ -11,13 +10,15 @@ import {
 } from "./enemyConfig.js";
 import { getLootTable, selectLootItem } from "../config/lootConfig.js";
 import { createLootItem } from "./lootItem.js";
+import { POKEMON_CONFIG } from "../config/pokemonConfig.js";
+
 
 /**
  * Enemy entity class
  * Handles enemy movement, AI, and rendering
  */
 export class Enemy {
-  constructor(x, y, type = "ratata") {
+  constructor(x, y, type = "ratata" , isBoss = false) {
     // Position
     this.x = x;
     this.y = y;
@@ -25,6 +26,9 @@ export class Enemy {
     // Type-based stats
     this.type = type;
     this.setStatsFromType(type);
+
+    // Pour l'animation de la barre de vie
+    this.displayedHealth = this.maxHealth;
 
     // Movement
     this.velocityX = 0;
@@ -54,14 +58,14 @@ export class Enemy {
     this.lastDy = -1; // Default to down
 
     // Load sprite if available
-    this.loadSprite();
+    this.loadSprite(isBoss);
   }
 
   /**
    * Load sprite for this enemy type
    */
-  async loadSprite() {
-    const enemySpriteConfig = ENEMY_CONFIG[this.type];
+  async loadSprite(isBoss = false) {
+    const enemySpriteConfig = POKEMON_CONFIG[this.type];
     if (!enemySpriteConfig) return;
 
     // Get the actual spritesheet config using the spriteName
@@ -77,6 +81,11 @@ export class Enemy {
       // Adapt radius based on both spritesheet scale and enemy scale
       // Calculate effective sprite size when rendered
       const totalScale = spritesheetConfig.scale * enemySpriteConfig.scale;
+
+      if (isBoss) {
+        this.enemyScale  *= 2;
+      }
+    
       const effectiveWidth = spritesheetConfig.frameWidth * totalScale;
       const effectiveHeight = spritesheetConfig.frameHeight * totalScale;
       
@@ -103,8 +112,11 @@ export class Enemy {
     this.outlineColor = stats.outlineColor;
     this.xpValue = stats.xp;
 
+    // Mettre à jour displayedHealth si maxHealth change (ex: changement de type)
+    this.displayedHealth = stats.maxHealth;
+
     // Set particle color from sprite config if available
-    const enemyConfig = ENEMY_CONFIG[type];
+    const enemyConfig = POKEMON_CONFIG[type];
     if (enemyConfig?.spriteName) {
       const spritesheetConfig = spriteConfig[enemyConfig.spriteName];
       this.particleColor = spritesheetConfig?.dominantColor || stats.color;
@@ -134,6 +146,16 @@ export class Enemy {
    */
   update(dt, player) {
     if (this.dead) return null;
+
+    // Animation de la barre de vie (lerp vers la vraie valeur)
+    const lerpSpeed = 8; // Plus grand = plus rapide
+    if (this.displayedHealth > this.health) {
+      this.displayedHealth -= (this.displayedHealth - this.health) * Math.min(lerpSpeed * dt, 1);
+      // Clamp pour éviter de dépasser
+      if (this.displayedHealth < this.health) this.displayedHealth = this.health;
+    } else {
+      this.displayedHealth = this.health;
+    }
 
     // Calculate direction to player
     const dx = player.x - this.x;
@@ -170,14 +192,15 @@ export class Enemy {
       }
     }
 
-    // Move towards player (but not if shooter is in range)
-    if (dist > 0 && !isInRange) {
+    // Move towards player (but not if shooter is in range or colliding)
+    const contactDistance = (this.radius || 0) + (player.radius || 0);
+    if (dist > contactDistance && !isInRange) {
       const normalized = normalize(dx, dy);
       this.velocityX = normalized.x * this.speed;
       this.velocityY = normalized.y * this.speed;
       isMoving = true;
-    } else if (isInRange) {
-      // Stop movement when in range (for shooters)
+    } else {
+      // Stop movement when in range (for shooters) or colliding with player
       this.velocityX = 0;
       this.velocityY = 0;
     }
@@ -232,6 +255,7 @@ export class Enemy {
    * @returns {boolean} True if enemy died
    */
   takeDamage(amount) {
+
     if (this.dead) return false;
 
     this.health -= amount;
@@ -295,10 +319,48 @@ export class Enemy {
    * @param {number} cameraY - Camera offset Y
    */
   render(ctx, cameraX = 0, cameraY = 0) {
+
     if (this.dead) return;
 
     const screenX = this.x - cameraX;
     const screenY = this.y - cameraY;
+
+    // === BOSS AURA, EMOJI, NAME ===
+  if (this.isBoss) {
+      // Aura rouge diffuse
+      ctx.save();
+      const time = performance.now() * 0.002;
+      const auraAlpha = 0.15 + 0.1 * Math.sin(time * 2); // moins d'opacité pour diffusion
+      ctx.globalAlpha = auraAlpha;
+
+      const gradient = ctx.createRadialGradient(screenX, screenY, this.radius * 0.8, screenX, screenY, this.radius * 1.8);
+      gradient.addColorStop(0, 'rgba(255,34,34,0.6)');
+      gradient.addColorStop(0.5, 'rgba(255,34,34,0.3)');
+      gradient.addColorStop(1, 'rgba(255,34,34,0)');
+
+      ctx.fillStyle = gradient;
+      ctx.shadowColor = '#FF2222';
+      ctx.shadowBlur = 30; // plus flou
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, this.radius * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Emoji tête de mort et nom
+      ctx.save();
+      ctx.font = "bold 22px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.shadowColor = "#000";
+      ctx.shadowBlur = 4;
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 12px 'Pokemon Classic', Arial, sans-serif";
+      ctx.fillStyle = "#c23110ff";
+      ctx.shadowColor = "#000";
+      ctx.shadowBlur = 6;
+      ctx.fillText((this.type).toUpperCase(), screenX, screenY - this.radius - 18);
+      ctx.restore();
+  }
 
     // Draw shadow under enemy
     this.drawShadow(ctx, screenX, screenY);
@@ -362,10 +424,10 @@ export class Enemy {
       ctx.globalAlpha = 1.0;
     }
 
-    // Draw health bar for damaged enemies
+    // Draw animated health bar for damaged enemies
     if (this.health < this.maxHealth) {
-      const barWidth = this.radius * 2.2; // Plus court
-      const barHeight = 7; // Plus épais
+      const barWidth = this.radius * 2.2;
+      const barHeight = 7;
       const barX = screenX - barWidth / 2;
       const barY = screenY - this.radius - 12;
 
@@ -378,18 +440,40 @@ export class Enemy {
       ctx.lineWidth = 1;
       ctx.strokeRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
 
-      // Health fill color selon le pourcentage
+      // Barre "perdue" (rouge/orange, animée)
+      const displayedPercent = this.displayedHealth / this.maxHealth;
       const healthPercent = this.health / this.maxHealth;
+      // Barre de "perte" (de displayedHealth à health)
+      if (displayedPercent > healthPercent) {
+        ctx.fillStyle = "#FF5555";
+        ctx.fillRect(barX + barWidth * healthPercent, barY, barWidth * (displayedPercent - healthPercent), barHeight);
+      }
+
+      // Barre de vie actuelle
       let color;
       if (healthPercent <= 0.15) {
-        color = '#FF2222'; // Rouge
+        color = '#FF2222';
       } else if (healthPercent <= 0.5) {
-        color = '#FFD600'; // Orange/jaune
+        color = '#FFD600';
       } else {
-        color = '#00CC00'; // Vert
+        color = '#30C96E';
       }
       ctx.fillStyle = color;
       ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+
+      // Ajout des graduations (ticks) tous les 10%
+      ctx.save();
+      ctx.strokeStyle = 'rgba(75, 75, 75, 0.7)';
+      ctx.lineWidth = 0.5;
+      const tickCount = 5;
+      for (let i = 1; i < tickCount; i++) {
+        const tickX = barX + (barWidth * i) / tickCount;
+        ctx.beginPath();
+        ctx.moveTo(tickX, barY);
+        ctx.lineTo(tickX, barY + barHeight);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
   }
 
@@ -429,6 +513,17 @@ export class Enemy {
  * @param {string} type - Enemy type
  * @returns {Enemy} New enemy instance
  */
-export function createEnemy(x, y, type = "ratata") {
-  return new Enemy(x, y, type);
+export function createEnemy(x, y, type = "ratata", options = {}) {
+  const enemy = new Enemy(x, y, type, options.isBoss);
+  if (options.isBoss) {
+    enemy.isBoss = true;
+    enemy.enemyScale = (enemy.enemyScale || 1) * 5;
+    if (options.hp) {
+      enemy.health = options.hp;
+      enemy.maxHealth = options.hp;
+    }
+    if (options.attack) enemy.damage = options.attack;
+    if (options.defense) enemy.defense = options.defense;
+  }
+  return enemy;
 }

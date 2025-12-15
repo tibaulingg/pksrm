@@ -2,9 +2,15 @@
  * Enemy Configuration System
  * All stats are defined as ratios that can be adjusted globally
  * Base values serve as reference points (1.0 = base value)
+ * 
+ * Pokemon definitions are now centralized in pokemonConfig.js
+ * This file provides enemy-specific utilities and base values
  */
 
-import { ITEM_TYPES } from "../config/itemConfig.js";
+import {
+  POKEMON_CONFIG,
+  getPokemonEnemyConfig,
+} from "../config/pokemonConfig.js";
 
 const BASE_VALUES = {
   health: 20,
@@ -15,54 +21,25 @@ const BASE_VALUES = {
 };
 
 /**
- * Enemy configuration with all parameters as ratios
- * ratio: relative frequency (sum of all ratios determines probability)
- * stats: all values are multipliers of BASE_VALUES
- * type: "melee" or "ranged"
- * spriteName: nom de la spritesheet à utiliser (doit correspondre à spriteConfig.js)
- * lootTable: items dropped with probabilities
+ * Build ENEMY_CONFIG from pokemon definitions
+ * Only includes pokemon that are spawnable as enemies (ratio > 0)
  */
-export const ENEMY_CONFIG = {
-  ratata: {
-    name: "Ratata",
-    ratio: 0.7,
-    type: "melee",
-    spriteName: "ratata",
-    scale: 2,
-    stats: {
-      health: 2,
-      speed: 1,
-      damage: 1.0,
-      radius: 1.0,
-      xp: 1.0,
-    },
-    lootTable: [{ itemType: ITEM_TYPES.RATATA_TAIL, chance: 0.1 }],
-  },
+export const ENEMY_CONFIG = {};
 
-  caterpie: {
-    name: "Caterpie",
-    ratio: 0.3,
-    type: "ranged",
-    spriteName: "caterpie",
-    scale: 1.5,
-    stats: {
-      health: 1,
-      speed: 0.3,
-      damage: 0.3,
-      radius: 1.15,
-      xp: 4.0,
-    },
-    ranged: {
-      projectileColor: "#afb5adff",
-      shootCooldown: 1.5,
-      shootRange: 300,
-      projectileSpeed: 250,
-      projectileDamage: 0.8, // ratio of base damage
-    },
-    lootTable: [],
-  },
-};
+Object.entries(POKEMON_CONFIG).forEach(([key, pokemonDef]) => {
+  const enemyConfig = pokemonDef.enemy;
+    ENEMY_CONFIG[key] = {
+      name: pokemonDef.name,
+      type: enemyConfig.type,
+      spriteName: pokemonDef.spriteName,
+      scale: pokemonDef.scale,
+      stats: enemyConfig.stats,
+      lootTable: enemyConfig.lootTable,
+      ...(enemyConfig.ranged && { ranged: enemyConfig.ranged }),
+    };
+});
 
+console.log("Loaded ENEMY_CONFIG:", ENEMY_CONFIG);
 /**
  * Get computed stats for an enemy type
  * @param {string} type - Enemy type key

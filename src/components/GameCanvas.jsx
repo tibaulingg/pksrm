@@ -1,7 +1,6 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect } from "react";
 
 import { useGame } from "../hooks/useGame.js";
-import CharacterSelectOverlay from "./CharacterSelectOverlay.jsx";
 
 /**
  * Main game canvas component
@@ -10,13 +9,11 @@ import CharacterSelectOverlay from "./CharacterSelectOverlay.jsx";
 function GameCanvas() {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
-  const [selectedCharacter, setSelectedCharacter] = useState(null);
-  const [showCharacterSelect, setShowCharacterSelect] = useState(true);
 
   const CANVAS_WIDTH = 1280;
   const CANVAS_HEIGHT = 720;
 
-  const { engine } = useGame(canvasRef, selectedCharacter);
+  const { engine } = useGame(canvasRef);
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -37,9 +34,11 @@ function GameCanvas() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "#0f0f1e",
+        backgroundColor: "#0d0d0eff",
         overflow: "hidden",
         padding: "16px",
+        borderRadius: "8px",
+        border: "2px solid #222240",
         position: "relative",
       }}
     >
@@ -48,21 +47,13 @@ function GameCanvas() {
         style={{
           display: "block",
           cursor: "crosshair",
-          width: "100%",
+          width: "80%",
           height: "auto",
           maxWidth: "100vw",
           maxHeight: "100vh",
           objectFit: "contain",
         }}
       />
-      {showCharacterSelect && (
-        <CharacterSelectOverlay
-          onSelectCharacter={(character) => {
-            setSelectedCharacter(character);
-            setShowCharacterSelect(false);
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -10,10 +10,10 @@ import { XP_CONFIG } from '../config/xpConfig.js';
  * Percentage chance for each rarity tier
  */
 export const RARITY_DISTRIBUTION = {
-  common: 0.70,      // 70%
-  rare: 0.20,        // 20%
-  epic: 0.10,        // 10%
-  legendary: 0.01,   // 1%
+  common: 0.70,     
+  rare: 0.20,       
+  epic: 0.10,       
+  legendary: 0.01,  
 };
 
 /**
@@ -25,20 +25,19 @@ export const UPGRADES = [
   {
     id: "speed-boost-1",
     name: "Swift Feet",
-    description: "+20% movement speed",
+    description: "+10% movement speed",
     rarity: "common",
     apply: (state) => {
-      state.player.speed *= 1.2;
+      state.player.speed *= 1.1;
     },
   },
   {
     id: "health-boost-1",
     name: "Toughness",
-    description: "+25 max health",
+    description: "+15 max health",
     rarity: "common",
     apply: (state) => {
-      state.player.maxHealth += 25;
-      state.player.health = state.player.maxHealth; // Heal on upgrade
+      state.player.maxHealth += 15;
     },
   },
   {
@@ -56,7 +55,7 @@ export const UPGRADES = [
     description: "+25% attack speed",
     rarity: "common",
     apply: (state) => {
-      state.player.attackCooldown *= 0.75; // Reduce cooldown = faster attacks
+      state.player.attackCooldown *= 0.75;
     },
   },
   {
@@ -69,7 +68,6 @@ export const UPGRADES = [
     },
   },
 
-  // RARE UPGRADES
   {
     id: "projectile-size",
     name: "Big Shots",
@@ -89,21 +87,12 @@ export const UPGRADES = [
     },
   },
   {
-    id: "speed-boost-2",
-    name: "Lightning Legs",
-    description: "+40% movement speed",
-    rarity: "rare",
-    apply: (state) => {
-      state.player.speed *= 1.4;
-    },
-  },
-  {
     id: "health-regen",
     name: "Regeneration",
     description: "Slowly regenerate health over time",
     rarity: "rare",
     apply: (state) => {
-      state.playerRegenRate = 5; // Health per second
+      state.playerRegenRate = 5;
     },
   },
   {
@@ -117,15 +106,6 @@ export const UPGRADES = [
   },
 
   // EPIC UPGRADES
-  {
-    id: "pierce",
-    name: "Piercing Shots",
-    description: "Projectiles pierce through enemies",
-    rarity: "epic",
-    apply: (state) => {
-      state.projectilePiercing = (state.projectilePiercing || 0) + 5;
-    },
-  },
   {
     id: "damage-boost-2",
     name: "Power Surge",
@@ -152,7 +132,7 @@ export const UPGRADES = [
     rarity: "epic",
     apply: (state) => {
       state.player.maxHealth += 50;
-      state.player.health = state.player.maxHealth;
+      //state.player.health = state.player.maxHealth;
     },
   },
 
@@ -169,10 +149,9 @@ export const UPGRADES = [
   {
     id: "mega-speed",
     name: "Time Warp",
-    description: "+100% movement & attack speed",
+    description: "+100% attack speed",
     rarity: "legendary",
     apply: (state) => {
-      state.player.speed *= 2;
       state.player.attackCooldown *= 0.5;
     },
   },

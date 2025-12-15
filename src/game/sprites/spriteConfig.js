@@ -9,6 +9,11 @@ import caterpieSpriteSheet from "../../sprites/caterpie/sprite.png";
 import piplupSpriteSheet from "../../sprites/piplup/sprite.png";
 import turtwigSpriteSheet from "../../sprites/turtwig/sprite.png";
 import chimcharSpriteSheet from "../../sprites/chimchar/sprite.png";
+import quagsireSpriteSheet from "../../sprites/quagsire/sprite.png";
+import hurtquagSireSpriteSheet from "../../sprites/quagsire/hurt.png";
+import hurtPiplupSpriteSheet from "../../sprites/piplup/hurt.png";
+import hurtTurwig from "../../sprites/turtwig/hurt.png";
+import hurtChimchar from "../../sprites/chimchar/hurt.png";
 
 export const spriteConfig = {
   piplup: {
@@ -27,6 +32,20 @@ export const spriteConfig = {
     animationSpeed: 0.15, // seconds per frame
     scale: 1,
     dominantColor: "#4FC3F7", // Dominant color from Piplup sprite for particles
+    hurtAnim : {
+      hurtSpriteSheet: hurtPiplupSpriteSheet,
+      spriteWidth: 80,
+      spriteHeight: 256,
+      framesPerRow: 2,
+      framesPerColumn: 8,
+      frameWidth: 40,
+      frameHeight: 32,
+      animationFrames: {
+        hurt: [0,1], // Left to right frames
+      },
+      animationSpeed: 0.2, // seconds per frame
+      scale: 1,
+    }
   },
   turtwig: {
     spriteSheet: turtwigSpriteSheet,
@@ -44,6 +63,20 @@ export const spriteConfig = {
     animationSpeed: 0.15, // seconds per frame
     scale: 1,
     dominantColor: "#4E944F", // Dominant color from Turtwig sprite for particles
+    hurtAnim : {
+      hurtSpriteSheet: hurtTurwig,
+      spriteWidth: 64,
+      spriteHeight: 384,
+      framesPerRow: 2,
+      framesPerColumn: 8,
+      frameWidth: 32,
+      frameHeight: 48,
+      animationFrames: {
+        hurt: [0,1], // Left to right frames
+      },
+      animationSpeed: 0.2, // seconds per frame
+      scale: 1,
+    }
   },
   chimchar: {
     spriteSheet: chimcharSpriteSheet,
@@ -61,6 +94,20 @@ export const spriteConfig = {
     animationSpeed: 0.1, // seconds per frame
     scale: 1,
     dominantColor: "#F57C00", // Dominant color from Chimchar sprite for particles
+    hurtAnim : {
+      hurtSpriteSheet: hurtChimchar,
+      spriteWidth: 64,
+      spriteHeight: 384,
+      framesPerRow: 2,
+      framesPerColumn: 8,
+      frameWidth: 32,
+      frameHeight: 48,
+      animationFrames: {
+        hurt: [0,1], // Left to right frames
+      },
+      animationSpeed: 0.2, // seconds per frame
+      scale: 1,
+    }
   },
   ratata: {
     spriteSheet: ratataSpriteSheet,
@@ -95,6 +142,37 @@ export const spriteConfig = {
     animationSpeed: 0.2, // seconds per frame
     scale: 1,
     dominantColor: "#78c850ff", // Dominant color from Caterpie sprite for particles
+  },
+  quagsire: {
+    spriteSheet: quagsireSpriteSheet,
+    profileImage: "../../sprites/quagsire/profile.png",
+    spriteWidth: 192,
+    spriteHeight: 320,
+    framesPerRow: 4,
+    framesPerColumn: 8,
+    frameWidth: 48, 
+    frameHeight: 40, 
+    animationFrames: {
+      idle: [0],
+      walk: [0, 1, 2, 3], // Left to right frames
+    },
+    animationSpeed: 0.15, // seconds per frame
+    scale: 1,
+    dominantColor: "#5069daff", // Dominant color from Quagsire sprite for particles
+    hurtAnim : {
+      hurtSpriteSheet: hurtquagSireSpriteSheet,
+      spriteWidth: 96,
+      spriteHeight: 446,
+      framesPerRow: 2,
+      framesPerColumn: 8,
+      frameWidth: 48,
+      frameHeight: 55.75,
+      animationFrames: {
+        hurt: [0,1], // Left to right frames
+      },
+      animationSpeed: 0.2, // seconds per frame
+      scale: 1,
+    }
   },
 };
 

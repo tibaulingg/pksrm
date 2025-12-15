@@ -4,7 +4,7 @@
  * Item definitions are in itemConfig.js
  */
 
-import { ENEMY_CONFIG } from "../entities/enemyConfig.js";
+import { POKEMON_CONFIG } from "../config/pokemonConfig.js";
 
 /**
  * Get loot table for an enemy type
@@ -12,8 +12,8 @@ import { ENEMY_CONFIG } from "../entities/enemyConfig.js";
  * @returns {Array} Loot table for the enemy [{itemType, chance}, ...]
  */
 export function getLootTable(enemyType) {
-  const config = ENEMY_CONFIG[enemyType];
-  return config?.lootTable || [];
+  const config = POKEMON_CONFIG[enemyType];
+  return config?.enemy?.lootTable || [];
 }
 
 /**

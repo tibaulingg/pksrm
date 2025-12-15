@@ -6,22 +6,34 @@ import { spriteConfig, getDirectionRow } from "../sprites/spriteConfig.js";
 import piplupSpriteSheet from "../../sprites/piplup/sprite.png";
 import turtwigSpriteSheet from "../../sprites/turtwig/sprite.png";
 import chimcharSpriteSheet from "../../sprites/chimchar/sprite.png";
+import ratataSpriteSheet from "../../sprites/ratata/sprite.png";
+import caterpieSpriteSheet from "../../sprites/caterpie/sprite.png";
+import quagsireSpriteSheet from "../../sprites/quagsire/sprite.png";
 
 // Import player profile icons
 import piplupProfile from "../../sprites/piplup/profile.png";
 import turtwigProfile from "../../sprites/turtwig/profile.png";
 import chimcharProfile from "../../sprites/chimchar/profile.png";
+import ratataProfile from "../../sprites/ratata/profile.png";
+import caterpieProfile from "../../sprites/caterpie/profile.png";
+import quagsireProfile from "../../sprites/quagsire/profile.png";
 
 const playerSpriteSheets = {
   piplup: piplupSpriteSheet,
   turtwig: turtwigSpriteSheet,
   chimchar: chimcharSpriteSheet,
+  ratata: ratataSpriteSheet,
+  caterpie: caterpieSpriteSheet,
+  quagsire: quagsireSpriteSheet,
 };
 
 const playerProfiles = {
   piplup: piplupProfile,
   turtwig: turtwigProfile,
   chimchar: chimcharProfile,
+  ratata: ratataProfile,
+  caterpie: caterpieProfile,
+  quagsire: quagsireProfile,
 };
 
 /**
@@ -84,10 +96,16 @@ export class Player {
     // Stats
     this.maxHealth = playerStats.maxHealth;
     this.health = playerStats.maxHealth;
+    // Pour l'animation de la barre de vie
+    this.displayedHealth = this.maxHealth;
     this.damage = playerStats.damage;
     this.invulnerable = false;
     this.invulnerableTime = 0;
     this.invulnerableDuration = 1.2; // seconds - longer window to escape
+
+    // Critical hit stats
+    this.critChance = playerStats.critChance;
+    this.critDamage = playerStats.critDamage;
 
     // Auto-attack system
     this.baseAttackCooldown = 0.4; // base seconds between attacks
@@ -108,7 +126,14 @@ export class Player {
     this.pulseScale = 1; // For kill pulse effect
     this.pulseTime = 0;
     this.pulseDuration = 0.2; // seconds
-    this.auraOpacity = 0.5; // Glow aura opacity
+
+    // Hurt animation state
+    this.isHurt = false;
+    this.hurtTime = 0;
+    this.hurtDuration = 0.5; // seconds
+    this.normalSpritesheetConfig = this.spritesheetConfig;
+    this.normalSpriteImage = null;
+    this.hurtSpriteImage = null;
   }
 
   /**
@@ -143,11 +168,25 @@ export class Player {
     img.onload = () => {
       this.spriteImage = img;
       this.spriteLoaded = true;
+      this.normalSpriteImage = img;
     };
     img.onerror = () => {
       console.warn(`Failed to load sprite for player: ${this.characterType}`);
     };
     img.src = spriteUrl;
+
+    // Précharge le spritesheet de hurt si dispo (pour Quagsire)
+    const hurtAnim = this.spritesheetConfig.hurtAnim;
+    if (hurtAnim && hurtAnim.hurtSpriteSheet) {
+      const hurtImg = new Image();
+      hurtImg.onload = () => {
+        this.hurtSpriteImage = hurtImg;
+      };
+      hurtImg.onerror = () => {
+        console.warn(`Failed to load hurt sprite for player: ${this.characterType}`);
+      };
+      hurtImg.src = hurtAnim.hurtSpriteSheet;
+    }
   }
 
   /**
@@ -178,6 +217,14 @@ export class Player {
    * @param {Array} enemies - Array of enemies for autoshoot targeting
    */
   update(dt, input, camera = null, enemies = [], mapSystem = null) {
+        // Animation de la barre de vie (lerp vers la vraie valeur)
+        const lerpSpeed = 8; // Plus grand = plus rapide
+        if (this.displayedHealth > this.health) {
+          this.displayedHealth -= (this.displayedHealth - this.health) * Math.min(lerpSpeed * dt, 1);
+          if (this.displayedHealth < this.health) this.displayedHealth = this.health;
+        } else {
+          this.displayedHealth = this.health;
+        }
     // Handle mode switch (Space to toggle autoshoot)
     if (input.keys["Space"]) {
       this.autoShoot = !this.autoShoot;
@@ -272,6 +319,13 @@ export class Player {
     const speed = Math.sqrt(
       this.velocityX * this.velocityX + this.velocityY * this.velocityY
     );
+    // Choisit le bon tableau d'animation selon l'état
+    let frames;
+    if (this.isHurt && this.spritesheetConfig.animationFrames.hurt) {
+      frames = this.spritesheetConfig.animationFrames.hurt;
+    } else {
+      frames = this.spritesheetConfig.animationFrames.walk;
+    }
     if (speed > 5) {
       this.currentRow = getDirectionRow(this.velocityX, this.velocityY);
 
@@ -279,8 +333,11 @@ export class Player {
       this.animationTime += dt;
       if (this.animationTime >= this.spritesheetConfig.animationSpeed) {
         this.animationTime = 0;
-        const walkFrames = this.spritesheetConfig.animationFrames.walk;
-        this.currentFrame = (this.currentFrame + 1) % walkFrames.length;
+        if (frames && frames.length > 0) {
+          this.currentFrame = (this.currentFrame + 1) % frames.length;
+        } else {
+          this.currentFrame = 0;
+        }
       }
     } else {
       // Idle frame when not moving
@@ -294,6 +351,20 @@ export class Player {
       if (this.invulnerableTime >= this.invulnerableDuration) {
         this.invulnerable = false;
         this.invulnerableTime = 0;
+      }
+    }
+
+    // Hurt animation timer
+    if (this.isHurt) {
+      this.hurtTime += dt;
+      if (this.hurtTime >= this.hurtDuration) {
+        // Retour à l'animation normale
+        this.isHurt = false;
+        this.hurtTime = 0;
+        this.spritesheetConfig = this.normalSpritesheetConfig;
+        this.spriteImage = this.normalSpriteImage;
+        this.currentFrame = 0;
+        this.animationTime = 0;
       }
     }
 
@@ -348,6 +419,16 @@ export class Player {
     this.invulnerable = true;
     this.invulnerableTime = 0;
     this.hitShakeTime = 0.15; // Screen shake duration
+
+    // Déclenche l'animation hurt si dispo (ex: Quagsire)
+    if (this.spritesheetConfig.hurtAnim && this.hurtSpriteImage) {
+      this.isHurt = true;
+      this.hurtTime = 0;
+      this.spritesheetConfig = this.spritesheetConfig.hurtAnim;
+      this.spriteImage = this.hurtSpriteImage;
+      this.currentFrame = 0;
+      this.animationTime = 0;
+    }
 
     return true;
   }
@@ -432,8 +513,15 @@ export class Player {
     // Draw sprite if available
     if (this.spriteLoaded && this.spriteImage && this.spritesheetConfig) {
       const config = this.spritesheetConfig;
-      const walkFrames = config.animationFrames.walk;
-      const frameIndex = walkFrames[this.currentFrame];
+      // Utilise le bon tableau d'animation selon l'état
+      let frames;
+      if (this.isHurt && config.animationFrames.hurt) {
+        frames = config.animationFrames.hurt;
+      } else {
+        frames = config.animationFrames.walk;
+      }
+      // Sécurise l'accès au frame courant
+      const frameIndex = frames && frames.length > 0 ? frames[this.currentFrame % frames.length] : 0;
       const totalScale = config.scale * this.scale; // Combine spritesheet and character scale
 
       // Calculate source position in spritesheet
@@ -509,20 +597,75 @@ export class Player {
 
     ctx.globalAlpha = 1.0;
 
-    // Draw health bar
-    const barWidth = 40;
-    const barHeight = 4;
+    // Barre de vie animée (toujours visible, plus longue)
+    const barWidth = this.radius * 3.5; // Plus longue que les ennemis
+    const barHeight = 6;
     const barX = screenX - barWidth / 2;
-    const barY = screenY - this.radius - 10;
+    const barY = screenY - this.radius - 30;
 
-    // Background
-    ctx.fillStyle = "#FF0000";
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    // Background avec border
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
 
-    // Health
+    // Border
+    ctx.strokeStyle = "rgba(100, 100, 100, 0.6)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
+
+    // Barre "perdue" (rouge/orange, animée)
+    const displayedPercent = this.displayedHealth / this.maxHealth;
     const healthPercent = this.health / this.maxHealth;
-    ctx.fillStyle = "#00FF00";
+    if (displayedPercent > healthPercent) {
+      ctx.fillStyle = "#FF5555";
+      ctx.fillRect(barX + barWidth * healthPercent, barY, barWidth * (displayedPercent - healthPercent), barHeight);
+    }
+
+    // Barre de vie actuelle
+    let color;
+    if (healthPercent <= 0.15) {
+      color = '#FF2222';
+    } else if (healthPercent <= 0.5) {
+      color = '#FFD600';
+    } else {
+      color = '#30C96E';
+    }
+    ctx.fillStyle = color;
     ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
+
+    // Ajout des graduations (ticks) tous les 10%
+    ctx.save();
+    ctx.strokeStyle = 'rgba(75, 75, 75, 0.7)';
+    ctx.lineWidth = 0.5;
+    const tickCount = 5;
+    for (let i = 1; i < tickCount; i++) {
+      const tickX = barX + (barWidth * i) / tickCount;
+      ctx.beginPath();
+      ctx.moveTo(tickX, barY);
+      ctx.lineTo(tickX, barY + barHeight);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // --- Barre d'XP fine sous la barre de vie ---
+    if (typeof this.xp === 'number' && typeof this.xpToNextLevel === 'number') {
+      const xpBarHeight = 4;
+      // Même position horizontale et border que la barre de vie
+      const xpBarX = barX - 1;
+      const xpBarW = barWidth + 2;
+      // Juste en dessous, sans décalage supplémentaire
+      const xpBarY = barY + barHeight + 1;
+      const xpPercent = Math.max(0, Math.min(1, this.xp / this.xpToNextLevel));
+      // Fond
+      ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+      ctx.fillRect(xpBarX, xpBarY, xpBarW, xpBarHeight);
+      // Border identique à la barre de vie
+      ctx.strokeStyle = "rgba(100, 100, 100, 0.6)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(xpBarX, xpBarY, xpBarW, xpBarHeight);
+      // XP
+      ctx.fillStyle = "#53CEF7";
+      ctx.fillRect(xpBarX, xpBarY, xpBarW * xpPercent, xpBarHeight);
+    }
   }
 
   /**

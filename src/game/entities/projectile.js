@@ -2,6 +2,8 @@
  * Projectile entity class
  * Handles projectile movement, collision, and rendering
  */
+import { getProjectileImage } from "./projectileImage.js";
+
 export class Projectile {
   constructor(
     x,
@@ -11,7 +13,8 @@ export class Projectile {
     damage = 10,
     owner = null,
     color = "#FFC107",
-    maxDistance = null // distance maximale parcourue
+    maxDistance = null, // distance maximale parcourue
+    projectileType = null // type du projectile (ex: water)
   ) {
     // Position
     this.x = x;
@@ -25,8 +28,18 @@ export class Projectile {
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
     if (owner && owner instanceof Object && owner.velocityX !== undefined && owner.velocityY !== undefined) {
-      vx += owner.velocityX;
-      vy += owner.velocityY;
+      //Seulement si on va vers l'avant
+      if ((vx > 0 && owner.velocityX > 0) || (vx < 0 && owner.velocityX < 0)) {
+        vx += owner.velocityX;
+      }
+      
+      if ((vy > 0 && owner.velocityY > 0) || (vy < 0 && owner.velocityY < 0)) {
+        vy += owner.velocityY;
+      }
+      //Augmenter un peu la portée max en fonction de la vitesse du tireur
+      if (maxDistance !== null) {
+        maxDistance += Math.abs(owner.velocityX / 2) * (this.lifetime || 2.0);
+      }
     }
     this.velocityX = vx;
     this.velocityY = vy;
@@ -55,6 +68,11 @@ export class Projectile {
     // Visual effects
     this.trail = []; // Trail positions for visual effect
     this.maxTrailLength = 5;
+
+    // Image du projectile si type précisé
+    this.projectileType = projectileType;
+    // imageInfo = { image, angleOffset, scale }
+    this.imageInfo = projectileType ? getProjectileImage(projectileType) : null;
   }
 
   /**
@@ -210,11 +228,29 @@ export class Projectile {
       ctx.globalAlpha = 1.0;
     }
 
-    // Draw projectile
-    ctx.beginPath();
-    ctx.arc(screenX, screenY, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this.color;
-    ctx.fill();
+    // Draw projectile (image si dispo, sinon cercle)
+    if (this.imageInfo && this.imageInfo.image) {
+      ctx.save();
+      ctx.translate(screenX, screenY);
+      ctx.rotate(this.angle + (this.imageInfo.angleOffset || 0));
+      const scale = this.imageInfo.scale || 1;
+      const img = this.imageInfo.image;
+      const w = img.naturalWidth * scale;
+      const h = img.naturalHeight * scale;
+      ctx.drawImage(
+        img,
+        -w / 2,
+        -h / 2,
+        w,
+        h
+      );
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(screenX, screenY, this.radius, 0, Math.PI * 2);
+      ctx.fillStyle = this.color;
+      ctx.fill();
+    }
   }
 }
 
@@ -238,7 +274,8 @@ export function createProjectileToTarget(
   damage = 10,
   owner = null,
   color = null,
-  maxDistance = null
+  maxDistance = null,
+  projectileType = null
 ) {
   const angle = Math.atan2(targetY - y, targetX - x);
   const projectile = new Projectile(
@@ -249,7 +286,8 @@ export function createProjectileToTarget(
     damage,
     owner,
     color || "#FFC107",
-    maxDistance
+    maxDistance,
+    projectileType
   );
 
   // If owner is an enemy, style as enemy projectile with enemy color

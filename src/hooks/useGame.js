@@ -6,18 +6,17 @@ import { GameEngine } from '../game/engine.js';
  * Handles initialization, start/stop, and cleanup
  * 
  * @param {React.RefObject} canvasRef - Reference to canvas element
- * @param {string} selectedCharacter - Selected character type
  * @returns {Object} Game engine reference and control methods
  */
-export function useGame(canvasRef, selectedCharacter) {
+export function useGame(canvasRef) {
   const engineRef = useRef(null);
 
   useEffect(() => {
-    // Only initialize if canvas is available and character is selected
-    if (!canvasRef.current || !selectedCharacter) return;
+    // Only initialize if canvas is available
+    if (!canvasRef.current) return;
 
-    // Create game engine instance with selected character
-    const engine = new GameEngine(canvasRef.current, selectedCharacter);
+    // Create game engine instance (character selection is handled by the engine)
+    const engine = new GameEngine(canvasRef.current);
     engineRef.current = engine;
 
     // Start game loop
@@ -26,11 +25,11 @@ export function useGame(canvasRef, selectedCharacter) {
     // Cleanup on unmount
     return () => {
       if (engineRef.current) {
-        engineRef.current.destroy();
+        engineRef.current.stop();
         engineRef.current = null;
       }
     };
-  }, [canvasRef, selectedCharacter]);
+  }, [canvasRef]);
 
   return {
     engine: engineRef.current,

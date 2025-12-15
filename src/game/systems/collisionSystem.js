@@ -1,3 +1,4 @@
+
 import { circleCollision } from '../../utils/math.js';
 
 /**
@@ -5,15 +6,34 @@ import { circleCollision } from '../../utils/math.js';
  * Manages player-enemy, projectile-enemy, and other collision interactions
  */
 export class CollisionSystem {
-  constructor() {
+  constructor(soundManager) {
     // Collision stats
     this.playerHits = 0;
     this.projectileHits = 0;
     this.enemiesKilled = 0;
+    this.soundManager = soundManager;
     
     // Knockback forces
     this.projectileKnockback = 100;
     this.enemyKnockback = 300; // Doubled to push enemies away more forcefully
+  }
+
+    /**
+   * Check collision between player and boss (simple circle collision)
+   * @param {Object} player - Player entity
+   * @param {Object} boss - Boss entity
+   * @returns {boolean} True if collision occurred
+   */
+  checkPlayerBossCollision(player, boss) {
+    if (!boss || boss.dead) return false;
+    return circleCollision(
+      player.x,
+      player.y,
+      player.radius,
+      boss.x,
+      boss.y,
+      boss.radius
+    );
   }
 
   /**
@@ -79,6 +99,9 @@ export class CollisionSystem {
           if (enemy.dead) {
             results.enemiesKilled.push(enemy);
             this.enemiesKilled++;
+            if(enemy.isBoss) {
+              this.bossDefeated = true;
+            }
           }
 
           // Break if projectile is no longer active
@@ -146,11 +169,23 @@ export class CollisionSystem {
     );
 
     if (collision) {
-      // Calculate total damage
-      const totalDamage = projectile.damage + (player ? player.damage : 0);
+      // Calculate total damage with critical hit chance
+      let baseDamage = projectile.damage + (player ? player.damage : 0);
+      let isCrit = false;
+      let critDamage = 1.0;
+      
+      if (player) {
+        isCrit = Math.random() < (player.critChance / 100); // Convert percentage to decimal
+        critDamage = isCrit ? player.critDamage : 1.0;
+      }
+      
+      const totalDamage = baseDamage * critDamage;
       
       // Apply damage to enemy
       const died = enemy.takeDamage(totalDamage);
+
+      //PLay hit sound
+      this.soundManager.playHitSound();
       
       // Apply knockback to enemy
       const dx = enemy.x - projectile.x;
@@ -161,6 +196,10 @@ export class CollisionSystem {
       projectile.onHit();
       
       this.projectileHits++;
+      
+      // Store critical hit information for damage display
+      projectile.lastHitCrit = isCrit;
+      projectile.lastHitCritMultiplier = critDamage;
       
       return true;
     }

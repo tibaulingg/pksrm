@@ -29,10 +29,6 @@ export class MapSystem {
    * Initialize the map (nothing random now, just fixed size)
    */
   initialize() {
-    console.log(
-      `Map initialized: ${this.tilesWidth}x${this.tilesHeight} tiles (${this.width}x${this.height} units)`
-    );
-
     // Generate map features (placeholder for future)
     this.generateFeatures();
   }

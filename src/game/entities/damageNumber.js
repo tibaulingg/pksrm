@@ -3,20 +3,19 @@
  * Displayed when damage is dealt
  */
 export class DamageNumber {
-  constructor(x, y, damage, color = '#FFFFFF') {
+  constructor(x, y, damage, color = '#FFFFFF', isCrit = false) {
     this.x = x;
     this.y = y;
     this.damage = Math.round(damage);
     this.color = color; // Couleur du texte
-    
+    this.isCrit = isCrit;
     // Animation
     this.lifetime = 1.5; // seconds
     this.age = 0;
     this.velocityX = (Math.random() - 0.5) * 40; // Slight horizontal spread
     this.velocityY = -80; // Float upward
-    
     // Appearance
-    this.fontSize = 28;
+    this.fontSize = isCrit ? 13 : 10;
     this.opacity = 1;
   }
 
@@ -51,10 +50,12 @@ export class DamageNumber {
 
     ctx.save();
     ctx.globalAlpha = this.opacity;
-    ctx.font = `bold ${this.fontSize}px Arial`;
+    ctx.font = `${this.isCrit ? 'bold italic' : 'bold'} ${this.fontSize}px 'Pokemon Classic', Arial`;
     ctx.fillStyle = this.color;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'black';
     
     // Add shadow for better visibility
     ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
@@ -75,6 +76,6 @@ export class DamageNumber {
  * @param {string} color - Text color (default white for enemy damage)
  * @returns {DamageNumber} New damage number
  */
-export function createDamageNumber(x, y, damage, color = '#FFFFFF') {
-  return new DamageNumber(x, y, damage, color);
+export function createDamageNumber(x, y, damage, color = '#FFFFFF', isCrit = false) {
+  return new DamageNumber(x, y, damage, color, isCrit);
 }

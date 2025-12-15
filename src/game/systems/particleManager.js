@@ -7,21 +7,40 @@ export class Particle {
     // Position
     this.x = x;
     this.y = y;
-    
+
     // Movement
     this.vx = options.vx || 0;
     this.vy = options.vy || 0;
     this.gravity = options.gravity || 0;
-    
+
     // Visual
-    this.color = options.color || '#FFC107';
+    // Génère une couleur aléatoire autour de la couleur de base
+    this.color = Particle.randomizeColor(options.color || '#FFC107');
     this.size = options.size || 4;
     this.maxSize = this.size;
-    
+
     // Lifetime
     this.lifetime = options.lifetime || 0.5;
     this.age = 0;
     this.active = true;
+  }
+
+  // Génère une couleur plus claire ou plus foncée autour d'une couleur de base
+  static randomizeColor(baseColor) {
+    // Supporte les couleurs hexadécimales #RRGGBB ou #RRGGBBAA
+    let hex = baseColor.replace('#', '');
+    if (hex.length === 8) hex = hex.slice(0, 6); // ignore alpha
+    if (hex.length !== 6) return baseColor;
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    // Variation de -40 à +40 sur chaque composant
+    function clamp(val) { return Math.max(0, Math.min(255, val)); }
+    const variation = () => Math.floor((Math.random() - 0.5) * 80); // [-40, +40]
+    const nr = clamp(r + variation());
+    const ng = clamp(g + variation());
+    const nb = clamp(b + variation());
+    return `#${nr.toString(16).padStart(2, '0')}${ng.toString(16).padStart(2, '0')}${nb.toString(16).padStart(2, '0')}`;
   }
 
   update(dt) {
@@ -59,9 +78,8 @@ export class Particle {
     ctx.globalAlpha = alpha;
     
     ctx.fillStyle = this.color;
-    ctx.beginPath();
-    ctx.arc(screenX, screenY, this.size, 0, Math.PI * 2);
-    ctx.fill();
+    // Dessiner un petit carré centré sur la position de la particule
+    ctx.fillRect(screenX - this.size / 2, screenY - this.size / 2, this.size, this.size);
     
     ctx.globalAlpha = 1.0;
   }
@@ -78,7 +96,13 @@ export class ParticleManager {
   /**
    * Spawn death explosion particles
    */
-  spawnDeathExplosion(x, y, color = '#FF6B6B', count = 12) {
+  spawnDeathExplosion(x, y, color = '#FF6B6B', count = 12, isBoss = false) {
+
+
+    if (isBoss) {
+      count *= 3; // Plus de particules pour les boss
+    }
+
     for (let i = 0; i < count; i++) {
       const angle = (Math.PI * 2 * i) / count;
       const speed = 150 + Math.random() * 150;
@@ -86,10 +110,10 @@ export class ParticleManager {
       const particle = new Particle(x, y, {
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        gravity: 300,
+        gravity: isBoss ? 50 : 100,
         color: color,
         size: 5 + Math.random() * 4,
-        lifetime: 0.6 + Math.random() * 0.3,
+        lifetime: isBoss ? 5 + Math.random() * 0.3 : 0.6 + Math.random() * 0.3,
       });
       
       this.particles.push(particle);
@@ -117,12 +141,7 @@ export class ParticleManager {
     }
   }
 
-  /**
-   * Spawn projectile hit particles
-   */
-  spawnProjectileHit(x, y) {
-    this.spawnHitImpact(x, y, '#FFA500', 8);
-  }
+
 
   /**
    * Spawn XP collection particles

@@ -2,76 +2,47 @@
  * Playable Characters Configuration
  * All stats are defined as ratios that can be adjusted globally
  * Base values serve as reference points (1.0 = base value)
+ * 
+ * Pokemon definitions are now centralized in pokemonConfig.js
+ * This file provides player-specific utilities and base values
  */
 
+import {
+  POKEMON_CONFIG,
+  getPokemonPlayerConfig,
+} from "../config/pokemonConfig.js";
+
 const BASE_VALUES = {
-  health: 100,
+  health: 50,
   speed: 350,
-  damage: 15,
-  radius: 30,
-  attackSpeed: 1.0,
+  radius: 15,
+  damage: 10,
+  attackSpeed: 0.3,
+  critChance: 10, // % base chance
+  critDamage: 2.0, // 2x damage on crit
 };
 
 /**
- * Playable character configuration
- * spriteName: nom de la spritesheet à utiliser (doit correspondre à spriteConfig.js)
- * stats: all values are multipliers of BASE_VALUES
- * dominantColor: couleur dominante du personnage
- * projectileColor: couleur des projectiles du personnage
+ * Build PLAYER_CONFIG from pokemon definitions
+ * Only includes pokemon that are playable (player config exists)
  */
-export const PLAYER_CONFIG = {
-  piplup: {
-    name: "Piplup",
-    spriteName: "piplup",
-    scale: 2,
-    stats: {
-      health: 1.2,
-      speed: 0.9,
-      damage: 1.1,
-      radius: 1.0,
-      attackSpeed: 1.0,
-    },
-    range: 250, // portée de base pour Piplup
-    dominantColor: "#4FC3F7",
-    projectileColor: "#0288D1",
-    projectileSize: 20,
-    projectileSpeed: 500,
-  },
-  turtwig: {
-    name: "Turtwig",
-    spriteName: "turtwig",
-    scale: 2,
-    stats: {
-      health: 1.6,
-      speed: 0.5,
-      damage: 1.1,
-      radius: 1.2,
-      attackSpeed: 0.8,
-    },
-    range: 300, // portée de base pour Turtwig
-    dominantColor: "#4E944F",
-    projectileColor: "#2E7D32",
-    projectileSize: 14,
-    projectileSpeed: 420,
-  },
-  chimchar: {
-    name: "Chimchar",
-    spriteName: "chimchar",
-    scale: 2,
-    stats: {
-      health: 0.7,
-      speed: 1.3,
-      damage: 1.2,
-      radius: 0.9,
-      attackSpeed: 1.3,
-    },
-    range: 220, // portée de base pour Chimchar
-    dominantColor: "#F57C00",
-    projectileColor: "#E64A19",
-    projectileSize: 10,
-    projectileSpeed: 500,
-  },
-};
+export const PLAYER_CONFIG = {};
+
+Object.entries(POKEMON_CONFIG).forEach(([key, pokemonDef]) => {
+  if (pokemonDef.player && pokemonDef.playable) {
+    PLAYER_CONFIG[key] = {
+      name: pokemonDef.name,
+      spriteName: pokemonDef.spriteName,
+      scale: pokemonDef.scale,
+      stats: pokemonDef.player.stats,
+      range: pokemonDef.player.range,
+      dominantColor: pokemonDef.player.dominantColor,
+      projectileColor: pokemonDef.player.projectileColor,
+      projectileSize: pokemonDef.player.projectileSize,
+      projectileSpeed: pokemonDef.player.projectileSpeed,
+    };
+  }
+});
 
 /**
  * Get computed stats for a player character
@@ -92,6 +63,8 @@ export function getPlayerStats(type) {
     damage: BASE_VALUES.damage * stats.damage,
     radius: BASE_VALUES.radius * stats.radius,
     attackSpeed: BASE_VALUES.attackSpeed * stats.attackSpeed,
+    critChance: BASE_VALUES.critChance * (stats.critChance || 1),
+    critDamage: BASE_VALUES.critDamage * (stats.critDamage || 1),
     dominantColor: config.dominantColor,
     projectileColor: config.projectileColor,
     projectileSize: config.projectileSize || 10,
