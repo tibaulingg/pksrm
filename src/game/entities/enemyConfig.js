@@ -39,7 +39,6 @@ Object.entries(POKEMON_CONFIG).forEach(([key, pokemonDef]) => {
     };
 });
 
-console.log("Loaded ENEMY_CONFIG:", ENEMY_CONFIG);
 /**
  * Get computed stats for an enemy type
  * @param {string} type - Enemy type key

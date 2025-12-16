@@ -45,6 +45,9 @@ export class Player {
     // Position
     this.x = x;
     this.y = y;
+    
+    // Upgrades owned
+    this.upgrades = [];
 
     // Character type
     this.characterType = characterType;
@@ -138,6 +141,11 @@ export class Player {
     this.hurtSpriteImage = null;
   }
 
+  heal(amount) {
+    this.health += amount;
+    this.health = Math.min(this.health, this.maxHealth);
+  }
+
   /**
    * Darken a hex color
    * @param {string} color - Hex color (#RRGGBB or #RRGGBBAA)
@@ -185,7 +193,9 @@ export class Player {
         this.hurtSpriteImage = hurtImg;
       };
       hurtImg.onerror = () => {
-        console.warn(`Failed to load hurt sprite for player: ${this.characterType}`);
+        console.warn(
+          `Failed to load hurt sprite for player: ${this.characterType}`
+        );
       };
       hurtImg.src = hurtAnim.hurtSpriteSheet;
     }
@@ -219,14 +229,16 @@ export class Player {
    * @param {Array} enemies - Array of enemies for autoshoot targeting
    */
   update(dt, input, camera = null, enemies = [], mapSystem = null) {
-        // Animation de la barre de vie (lerp vers la vraie valeur)
-        const lerpSpeed = 8; // Plus grand = plus rapide
-        if (this.displayedHealth > this.health) {
-          this.displayedHealth -= (this.displayedHealth - this.health) * Math.min(lerpSpeed * dt, 1);
-          if (this.displayedHealth < this.health) this.displayedHealth = this.health;
-        } else {
-          this.displayedHealth = this.health;
-        }
+    // Animation de la barre de vie (lerp vers la vraie valeur)
+    const lerpSpeed = 8; // Plus grand = plus rapide
+    if (this.displayedHealth > this.health) {
+      this.displayedHealth -=
+        (this.displayedHealth - this.health) * Math.min(lerpSpeed * dt, 1);
+      if (this.displayedHealth < this.health)
+        this.displayedHealth = this.health;
+    } else {
+      this.displayedHealth = this.health;
+    }
     // Handle mode switch (Space to toggle autoshoot)
     if (input.keys["Space"]) {
       this.autoShoot = !this.autoShoot;
@@ -523,7 +535,10 @@ export class Player {
         frames = config.animationFrames.walk;
       }
       // Sécurise l'accès au frame courant
-      const frameIndex = frames && frames.length > 0 ? frames[this.currentFrame % frames.length] : 0;
+      const frameIndex =
+        frames && frames.length > 0
+          ? frames[this.currentFrame % frames.length]
+          : 0;
       const totalScale = config.scale * this.scale; // Combine spritesheet and character scale
 
       // Calculate source position in spritesheet
@@ -619,24 +634,29 @@ export class Player {
     const healthPercent = this.health / this.maxHealth;
     if (displayedPercent > healthPercent) {
       ctx.fillStyle = "#FF5555";
-      ctx.fillRect(barX + barWidth * healthPercent, barY, barWidth * (displayedPercent - healthPercent), barHeight);
+      ctx.fillRect(
+        barX + barWidth * healthPercent,
+        barY,
+        barWidth * (displayedPercent - healthPercent),
+        barHeight
+      );
     }
 
     // Barre de vie actuelle
     let color;
     if (healthPercent <= 0.15) {
-      color = '#FF2222';
+      color = "#FF2222";
     } else if (healthPercent <= 0.5) {
-      color = '#FFD600';
+      color = "#FFD600";
     } else {
-      color = '#30C96E';
+      color = "#30C96E";
     }
     ctx.fillStyle = color;
     ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
 
     // Ajout des graduations (ticks) tous les 10%
     ctx.save();
-    ctx.strokeStyle = 'rgba(75, 75, 75, 0.7)';
+    ctx.strokeStyle = "rgba(75, 75, 75, 0.7)";
     ctx.lineWidth = 0.5;
     const tickCount = 5;
     for (let i = 1; i < tickCount; i++) {
@@ -649,7 +669,7 @@ export class Player {
     ctx.restore();
 
     // --- Barre d'XP fine sous la barre de vie ---
-    if (typeof this.xp === 'number' && typeof this.xpToNextLevel === 'number') {
+    if (typeof this.xp === "number" && typeof this.xpToNextLevel === "number") {
       const xpBarHeight = 4;
       // Même position horizontale et border que la barre de vie
       const xpBarX = barX - 1;

@@ -205,6 +205,12 @@ export class CollisionSystem {
 
       //PLay hit sound
       this.soundManager.playHitSound();
+
+      //Heal the player if they have life steal
+      if (player && player.lifeSteal) {
+        const healAmount = totalDamage * player.lifeSteal;
+        player.heal(healAmount);
+      }
       
       // Apply knockback to enemy
       const dx = enemy.x - projectile.x;
@@ -288,7 +294,7 @@ export class CollisionSystem {
 
     if (collision) {
       // Apply damage to player
-      const damaged = player.takeDamage(projectile.damage, projectile);
+      const damaged = player.takeDamage(projectile.damage);
       
       if (damaged) {
         this.playerHits++;

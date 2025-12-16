@@ -3,17 +3,17 @@
  * Manages all available upgrades, their rarities, and application
  */
 
-import { XP_CONFIG } from '../config/xpConfig.js';
+import { XP_CONFIG } from "../config/xpConfig.js";
 
 /**
  * Rarity distribution configuration
  * Percentage chance for each rarity tier
  */
 export const RARITY_DISTRIBUTION = {
-  common: 0.70,     
-  rare: 0.20,       
-  epic: 0.10,       
-  legendary: 0.01,  
+  common: 0.7,
+  rare: 0.2,
+  epic: 0.1,
+  legendary: 0.01,
 };
 
 /**
@@ -43,10 +43,10 @@ export const UPGRADES = [
   {
     id: "damage-boost-1",
     name: "Sharpness",
-    description: "+5 damage per hit",
+    description: "5% damage increase",
     rarity: "common",
     apply: (state) => {
-      state.player.damage += 5;
+      state.player.damage *= 1.05;
     },
   },
   {
@@ -59,22 +59,21 @@ export const UPGRADES = [
     },
   },
   {
+    id: "life-steal",
+    name: "Vampirism",
+    description: "5% of damage dealt heals you",
+    rarity: "common",
+    apply: (state) => {
+      state.player.lifeSteal = 0.05;
+    },
+  },
+  {
     id: "xp-gain-1",
     name: "Greedy",
     description: "+10% XP gain",
     rarity: "common",
     apply: (state) => {
       XP_CONFIG.playerXpGainMultiplier *= 1.1;
-    },
-  },
-
-  {
-    id: "projectile-size",
-    name: "Big Shots",
-    description: "+50% projectile damage",
-    rarity: "rare",
-    apply: (state) => {
-      state.player.damage *= 1.5;
     },
   },
   {
@@ -91,6 +90,7 @@ export const UPGRADES = [
     name: "Regeneration",
     description: "Slowly regenerate health over time",
     rarity: "rare",
+    single: true,
     apply: (state) => {
       state.playerRegenRate = 5;
     },
@@ -100,6 +100,7 @@ export const UPGRADES = [
     name: "Barrier",
     description: "+100% invulnerability duration",
     rarity: "rare",
+    single: true,
     apply: (state) => {
       state.player.invulnerableDuration *= 2;
     },
@@ -204,14 +205,55 @@ export const RARITY_COLORS = {
   },
 };
 
+function checkPlayerStatsCaps(availableUpgrades, player) {
+  const attackSpeedCap = 0.2;
+  const movementSpeedCap = 600;
+
+  const playerAttackSpeed = 1 / player.attackCooldown;
+  if (playerAttackSpeed >= attackSpeedCap) {
+    for (let i = availableUpgrades.length - 1; i >= 0; i--) {
+      const upgrade = availableUpgrades[i];
+      if (
+        upgrade.id === "attack-speed-1" ||
+        upgrade.id === "projectile-count" ||
+        upgrade.id === "mega-speed" ||
+        upgrade.id === "weaponmaster"
+      ) {
+        availableUpgrades.splice(i, 1);
+      }
+    }
+  }
+
+  const playerMovementSpeed = player.speed;
+  if (playerMovementSpeed >= movementSpeedCap) {
+    for (let i = availableUpgrades.length - 1; i >= 0; i--) {
+      const upgrade = availableUpgrades[i];
+      if (upgrade.id === "speed-boost-1" || upgrade.id === "mega-speed") {
+        availableUpgrades.splice(i, 1);
+      }
+    }
+  }
+
+  //Remove single upgrades if already owned
+  const ownedUpgrades = new Set(player.upgrades);
+  for (let i = availableUpgrades.length - 1; i >= 0; i--) {
+    const upgrade = availableUpgrades[i];
+    if (upgrade.single && ownedUpgrades.has(upgrade.id)) {
+      availableUpgrades.splice(i, 1);
+    }
+  }
+}
+
 /**
  * Select random upgrades based on rarity distribution
  * @param {number} count - Number of upgrades to select (default 3)
  * @returns {Array} Array of randomly selected upgrade objects
  */
-export function selectRandomUpgrades(count = 3) {
+export function selectRandomUpgrades(count = 3, player) {
   const selected = [];
   const available = [...UPGRADES];
+
+  checkPlayerStatsCaps(available, player);
 
   for (let i = 0; i < count && available.length > 0; i++) {
     // Select rarity first based on distribution
@@ -228,12 +270,17 @@ export function selectRandomUpgrades(count = 3) {
     }
 
     // Find available upgrades with this rarity
-    const availableWithRarity = available.filter(u => u.rarity === selectedRarity);
+    const availableWithRarity = available.filter(
+      (u) => u.rarity === selectedRarity
+    );
 
     if (availableWithRarity.length > 0) {
       // Pick random upgrade from this rarity
-      const selected_upgrade = availableWithRarity[Math.floor(Math.random() * availableWithRarity.length)];
-      
+      const selected_upgrade =
+        availableWithRarity[
+          Math.floor(Math.random() * availableWithRarity.length)
+        ];
+
       selected.push({
         id: selected_upgrade.id,
         name: selected_upgrade.name,

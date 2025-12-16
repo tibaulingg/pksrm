@@ -9,7 +9,10 @@ export const LEVEL_CONFIG = {
     description: "A peaceful forest filled with grass-type Pokémon",
     difficulty: 1,
     difficultyMultiplier: 1, // Enemy stats multiplier
-    spawnMultiplier: 2, // Spawn frequency multiplier
+    hpGrowthRate: 0.005, // vitesse du scaling
+    hpGrowthPower: 1.2, // 🔥 puissance du scaling
+    maxHpMultiplier: 4, // plafond
+    spawnMultiplier: 1, // Spawn frequency multiplier
     backgroundColor: "#307230ff",
     enemies: {
       ratata: {
@@ -29,13 +32,13 @@ export const LEVEL_CONFIG = {
       },
     },
     boss: {
-      quagsire : {
+      quagsire: {
         spawnTimer: 60, // in seconds
         hp: 2000,
         attack: 100,
         defense: 100,
-      }
-    }
+      },
+    },
   },
 
   glacier: {
@@ -43,39 +46,45 @@ export const LEVEL_CONFIG = {
     description: "An icy tundra with water-type Pokémon",
     difficulty: 3,
     difficultyMultiplier: 1.5, // 30% stronger enemies
-    spawnMultiplier: 3,
+    hpGrowthRate: 0.005, // vitesse du scaling
+    hpGrowthPower: 1.2, // 🔥 puissance du scaling
+    maxHpMultiplier: 4, // plafond
+    spawnMultiplier: 1, // Spawn frequency multiplier
     backgroundColor: "#1a5c7a",
     enemies: {
       piplup: {
-          enabled: true,
-          weight: 80,
-          spawnRate: 0.4,
-        },
+        enabled: true,
+        weight: 80,
+        spawnRate: 0.4,
+      },
       quagsire: {
         enabled: true,
         weight: 20,
         spawnRate: 0.05,
       },
     },
-        boss: {
-      quagsire : {
+    boss: {
+      quagsire: {
         spawnTimer: 60, // in seconds
         hp: 2000,
         attack: 100,
         defense: 100,
-      }
-    }
+      },
+    },
   },
 
-    volcano: {
+  volcano: {
     name: "Crimson Volcano",
     description: "A hot volcanic area with fire-type Pokémon",
     difficulty: 5,
-    difficultyMultiplier: 2, 
-    spawnMultiplier: 4,
+    difficultyMultiplier: 2,
+    hpGrowthRate: 0.005, // vitesse du scaling
+    hpGrowthPower: 1.2, // 🔥 puissance du scaling
+    maxHpMultiplier: 4, // plafond
+    spawnMultiplier: 1, // Spawn frequency multiplier
     backgroundColor: "#660000",
     enemies: {
-      magmar : {
+      magmar: {
         enabled: true,
         weight: 90,
         spawnRate: 0.4,
@@ -87,13 +96,13 @@ export const LEVEL_CONFIG = {
       },
     },
     boss: {
-      moltres : {
+      moltres: {
         spawnTimer: 60, // in seconds
         hp: 2000,
         attack: 100,
         defense: 100,
-      }
-    }
+      },
+    },
   },
 };
 

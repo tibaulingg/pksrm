@@ -1,24 +1,21 @@
-import { normalize, distance } from "../../utils/math.js";
-import { spriteConfig, getDirectionRow } from "../sprites/spriteConfig.js";
+import { distance, normalize } from "../../utils/math.js";
+import { getLootTable } from "../config/lootConfig.js";
+import { POKEMON_CONFIG } from "../config/pokemonConfig.js";
+import { getDirectionRow, spriteConfig } from "../sprites/spriteConfig.js";
 import { spriteManager } from "../sprites/spriteManager.js";
 import {
-  getEnemyStats,
   getEnemyRangedConfig,
+  getEnemyStats,
   isEnemyRanged,
-  getRandomEnemyType,
-  getEnemySpriteConfig,
 } from "./enemyConfig.js";
-import { getLootTable, selectLootItem } from "../config/lootConfig.js";
 import { createLootItem } from "./lootItem.js";
-import { POKEMON_CONFIG } from "../config/pokemonConfig.js";
-
 
 /**
  * Enemy entity class
  * Handles enemy movement, AI, and rendering
  */
 export class Enemy {
-  constructor(x, y, type = "ratata" , isBoss = false) {
+  constructor(x, y, type = "ratata", isBoss = false) {
     // Position
     this.x = x;
     this.y = y;
@@ -29,6 +26,8 @@ export class Enemy {
 
     // Pour l'animation de la barre de vie
     this.displayedHealth = this.maxHealth;
+
+    this.effects = [];
 
     // Movement
     this.velocityX = 0;
@@ -73,22 +72,24 @@ export class Enemy {
     if (!spritesheetConfig) return;
 
     try {
-      this.spriteImage = await spriteManager.loadSprite(spritesheetConfig.spriteSheet);
+      this.spriteImage = await spriteManager.loadSprite(
+        spritesheetConfig.spriteSheet
+      );
       this.spritesheetConfig = spritesheetConfig; // Cache for later use
       this.enemyScale = enemySpriteConfig.scale; // Store enemy scale
       this.spriteLoaded = true;
-      
+
       // Adapt radius based on both spritesheet scale and enemy scale
       // Calculate effective sprite size when rendered
       const totalScale = spritesheetConfig.scale * enemySpriteConfig.scale;
 
       if (isBoss) {
-        this.enemyScale  *= 1.5;
+        this.enemyScale *= 1.5;
       }
-    
+
       const effectiveWidth = spritesheetConfig.frameWidth * totalScale;
       const effectiveHeight = spritesheetConfig.frameHeight * totalScale;
-      
+
       // Set radius to roughly half of the sprite's average dimension
       this.radius = Math.max(effectiveWidth, effectiveHeight) / 2.5;
     } catch (error) {
@@ -131,7 +132,9 @@ export class Enemy {
         this.shootCooldown = rangedConfig.shootCooldown;
         this.shootTimer = 0;
         this.shootRange = rangedConfig.shootRange;
-        this.projectileDamage = Math.round(stats.damage * rangedConfig.projectileDamage);
+        this.projectileDamage = Math.round(
+          stats.damage * rangedConfig.projectileDamage
+        );
         this.projectileSpeed = rangedConfig.projectileSpeed;
         this.projectileColor = rangedConfig?.projectileColor || this.color;
       }
@@ -150,9 +153,11 @@ export class Enemy {
     // Animation de la barre de vie (lerp vers la vraie valeur)
     const lerpSpeed = 8; // Plus grand = plus rapide
     if (this.displayedHealth > this.health) {
-      this.displayedHealth -= (this.displayedHealth - this.health) * Math.min(lerpSpeed * dt, 1);
+      this.displayedHealth -=
+        (this.displayedHealth - this.health) * Math.min(lerpSpeed * dt, 1);
       // Clamp pour éviter de dépasser
-      if (this.displayedHealth < this.health) this.displayedHealth = this.health;
+      if (this.displayedHealth < this.health)
+        this.displayedHealth = this.health;
     } else {
       this.displayedHealth = this.health;
     }
@@ -189,6 +194,25 @@ export class Enemy {
           color: this.projectileColor,
         };
         this.shootTimer = this.shootCooldown;
+      }
+    }
+
+    for (let i = this.effects.length - 1; i >= 0; i--) {
+      const effect = this.effects[i];
+
+      // Décrémenter la durée
+      effect.duration -= dt;
+      effect.timer += dt;
+
+      // Appliquer les dégâts toutes les X secondes
+      if (effect.timer >= effect.interval) {
+        effect.timer -= effect.interval;
+        this.takeDamage(effect.damage);
+      }
+
+      // Supprimer l’effet s’il est terminé
+      if (effect.duration <= 0) {
+        this.effects.splice(i, 1);
       }
     }
 
@@ -255,7 +279,6 @@ export class Enemy {
    * @returns {boolean} True if enemy died
    */
   takeDamage(amount, projectile = null) {
-
     if (this.dead) return false;
 
     this.health -= amount;
@@ -267,11 +290,19 @@ export class Enemy {
       return true; // Died
     }
 
-    //Le projectile a une chance sur 1 d'appliquer son effet selon son type
-    if (projectile && projectile.projectileType) {
-      const projectileType = projectile.projectileType;
-      if (projectileType === 'fire') {
-        this.effects.push('fire');
+    if (projectile && projectile.projectileType === "fire") {
+      const existingEffect = this.effects.find((e) => e.type === "fire");
+      if (existingEffect) {
+        existingEffect.duration = 5;
+        existingEffect.damage += 1; // Stack damage
+      } else {
+        this.effects.push({
+          type: "fire",
+          damage: 1, // Damage per tick
+          duration: 5, // Total duration in seconds
+          interval: 1, // Damage every second
+          timer: 0, // Timer to track intervals
+        });
       }
     }
 
@@ -315,7 +346,15 @@ export class Enemy {
     ctx.save();
     ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
     ctx.beginPath();
-    ctx.ellipse(screenX, shadowY, shadowWidth / 2, shadowHeight / 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+      screenX,
+      shadowY,
+      shadowWidth / 2,
+      shadowHeight / 2,
+      0,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
     ctx.restore();
   }
@@ -327,27 +366,33 @@ export class Enemy {
    * @param {number} cameraY - Camera offset Y
    */
   render(ctx, cameraX = 0, cameraY = 0) {
-
     if (this.dead) return;
 
     const screenX = this.x - cameraX;
     const screenY = this.y - cameraY;
 
     // === BOSS AURA, EMOJI, NAME ===
-  if (this.isBoss) {
+    if (this.isBoss) {
       // Aura rouge diffuse
       ctx.save();
       const time = performance.now() * 0.002;
       const auraAlpha = 0.15 + 0.1 * Math.sin(time * 2); // moins d'opacité pour diffusion
       ctx.globalAlpha = auraAlpha;
 
-      const gradient = ctx.createRadialGradient(screenX, screenY, this.radius * 0.8, screenX, screenY, this.radius * 1.8);
-      gradient.addColorStop(0, 'rgba(255,34,34,0.6)');
-      gradient.addColorStop(0.5, 'rgba(255,34,34,0.3)');
-      gradient.addColorStop(1, 'rgba(255,34,34,0)');
+      const gradient = ctx.createRadialGradient(
+        screenX,
+        screenY,
+        this.radius * 0.8,
+        screenX,
+        screenY,
+        this.radius * 1.8
+      );
+      gradient.addColorStop(0, "rgba(255,34,34,0.6)");
+      gradient.addColorStop(0.5, "rgba(255,34,34,0.3)");
+      gradient.addColorStop(1, "rgba(255,34,34,0)");
 
       ctx.fillStyle = gradient;
-      ctx.shadowColor = '#FF2222';
+      ctx.shadowColor = "#FF2222";
       ctx.shadowBlur = 30; // plus flou
       ctx.beginPath();
       ctx.arc(screenX, screenY, this.radius * 1.8, 0, Math.PI * 2);
@@ -366,9 +411,13 @@ export class Enemy {
       ctx.fillStyle = "#c23110ff";
       ctx.shadowColor = "#000";
       ctx.shadowBlur = 6;
-      ctx.fillText((this.type).toUpperCase(), screenX, screenY - this.radius - 18);
+      ctx.fillText(
+        this.type.toUpperCase(),
+        screenX,
+        screenY - this.radius - 18
+      );
       ctx.restore();
-  }
+    }
 
     // Draw shadow under enemy
     this.drawShadow(ctx, screenX, screenY);
@@ -389,7 +438,10 @@ export class Enemy {
       ctx.scale(this.scaleX, this.scaleY);
 
       // Make sprite blink when hit (like player invulnerability flash)
-      if (this.hitFlashTime > 0 && Math.floor(this.hitFlashTime * 20) % 2 === 0) {
+      if (
+        this.hitFlashTime > 0 &&
+        Math.floor(this.hitFlashTime * 20) % 2 === 0
+      ) {
         ctx.globalAlpha = 0.5; // Make sprite semi-transparent during flash
       }
 
@@ -415,7 +467,10 @@ export class Enemy {
       ctx.scale(this.scaleX, this.scaleY);
 
       // Make circle blink when hit
-      if (this.hitFlashTime > 0 && Math.floor(this.hitFlashTime * 20) % 2 === 0) {
+      if (
+        this.hitFlashTime > 0 &&
+        Math.floor(this.hitFlashTime * 20) % 2 === 0
+      ) {
         ctx.globalAlpha = 0.5; // Make semi-transparent during flash
       }
 
@@ -454,24 +509,54 @@ export class Enemy {
       // Barre de "perte" (de displayedHealth à health)
       if (displayedPercent > healthPercent) {
         ctx.fillStyle = "#FF5555";
-        ctx.fillRect(barX + barWidth * healthPercent, barY, barWidth * (displayedPercent - healthPercent), barHeight);
+        ctx.fillRect(
+          barX + barWidth * healthPercent,
+          barY,
+          barWidth * (displayedPercent - healthPercent),
+          barHeight
+        );
       }
 
       // Barre de vie actuelle
       let color;
       if (healthPercent <= 0.15) {
-        color = '#FF2222';
+        color = "#FF2222";
       } else if (healthPercent <= 0.5) {
-        color = '#FFD600';
+        color = "#FFD600";
       } else {
-        color = '#30C96E';
+        color = "#30C96E";
       }
       ctx.fillStyle = color;
       ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
 
+      //Affichage des effets de statut à gauche de la barre de vie
+      const effectIconSize = barHeight; // Taille des icônes des effets
+      let effectIndex = 0;
+      for (const effect of this.effects) {
+        //Draw emoji based on effect type
+        let emoji = "";
+        switch (effect.type) {
+          case "fire":
+            emoji = "🔥";
+            break;
+          default:
+            emoji = "";
+        }
+
+        ctx.font = `${effectIconSize}px Arial`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(
+          emoji,
+          barX - effectIconSize - 4,
+          barY + effectIndex * (effectIconSize + 2)
+        );
+        effectIndex++;
+      }
+
       // Ajout des graduations (ticks) tous les 10%
       ctx.save();
-      ctx.strokeStyle = 'rgba(75, 75, 75, 0.7)';
+      ctx.strokeStyle = "rgba(75, 75, 75, 0.7)";
       ctx.lineWidth = 0.5;
       const tickCount = 5;
       for (let i = 1; i < tickCount; i++) {

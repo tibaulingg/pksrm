@@ -29,7 +29,6 @@ class SongManager {
     }
 
     stopSong() {
-        console.log("Stopping song")
         if (this.currentSource) {
             this.currentSource.stop()
             this.currentSource = null

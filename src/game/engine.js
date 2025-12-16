@@ -13,9 +13,9 @@ import { InventorySystem } from "./systems/inventorySystem.js";
 import { MapSystem } from "./systems/mapSystem.js";
 import { selectRandomUpgrades, applyUpgrade } from "./systems/upgradeSystem.js";
 import { calculateXpForLevel, getEffectiveXpValue } from "./config/xpConfig.js";
-import { PLAYER_CONFIG } from "./entities/playerConfig.js";
+import { PLAYER_CONFIG } from "./config/playerConfig.js";
 import { LEVEL_CONFIG, getAllLevels, getLevel } from "./config/levelConfig.js";
-import { random } from "../utils/math.js";
+import { random, clamp } from "../utils/math.js";
 
 // Import tileset
 import tilesetImage from "../sprites/tileset.png";
@@ -138,7 +138,7 @@ export class GameEngine {
     this.particleManager = new ParticleManager();
     this.minimap = new Minimap(canvas.width, canvas.height);
     this.inventorySystem = new InventorySystem(canvas.width, canvas.height);
-    this.mapSystem = new MapSystem(16, 16, 32); // 64x64 tiles of 32 units each
+    this.mapSystem = new MapSystem(12, 12, 32); // 64x64 tiles of 32 units each
 
     // Stats
     this.score = 0;
@@ -465,8 +465,6 @@ export class GameEngine {
           this.input.mouse.y >= menu.y &&
           this.input.mouse.y <= menu.y + menu.height
         ) {
-          // Back to menu logic (reset game state)
-          console.log("Returning to character select");
           this.songManager.stopSong();
           this.showCharacterSelect = true;
           this.showLevelSelect = false;
@@ -500,8 +498,6 @@ export class GameEngine {
    */
   loadTileset() {
     let imgSrc = tilesetImage;
-    // Si la map sélectionnée est la 2, utiliser le tileset toundra
-    console.log(this.selectedLevel)
     if (this.selectedLevel === 'glacier' || this.selectedLevel === 2) {
       imgSrc = tilesetToundra;
     }
@@ -768,9 +764,6 @@ export class GameEngine {
       for (let i = 0; i < this.enemies.length; i++) {
         const e = this.enemies[i];
         if (e.isBoss && e.dead) {
-
-          console.log("Boss defeated!");
-
           this.gameOver = true;
           this.bossDefeated = true;
           return;
@@ -899,15 +892,12 @@ export class GameEngine {
         const projectile = collisionResults.projectilesHit[i];
         const hit = collisionResults.projectileHits[i];
 
-        // Get critical hit information from the projectile
         const isCrit = projectile.lastHitCrit || false;
         const critMultiplier = projectile.lastHitCritMultiplier || 1.0;
         
-        // Calculate final damage display (same as what was applied)
         let baseDamage = projectile.damage + this.player.damage;
         let finalDamage = baseDamage * critMultiplier;
         
-        // Create floating damage number at hit location
         const damageColor = isCrit ? "#FFD700" : "#FFFFFF"; // Yellow for crits, white for normal
         const damageNum = createDamageNumber(
           hit.x, 
@@ -918,6 +908,13 @@ export class GameEngine {
           this.player.critDamage
         );
         this.damageNumbers.push(damageNum);
+        if (projectile.aoeRadius && projectile.aoeRadius > 0) {
+          const color = hit.enemyColor || this.player.projectileColor || "#FFA500";
+          this.particleManager.spawnExplosion(hit.x, hit.y, projectile.aoeRadius, color);
+        } else {
+          const color = hit.enemyColor || this.player.projectileColor || "#FFA500";
+          this.particleManager.spawnHitImpact(hit.x, hit.y, color, 6);
+        }
       }
     }
 
@@ -1013,17 +1010,10 @@ export class GameEngine {
     }
 
     // Select 3 random upgrades for this level
-    this.levelUpUpgrades = selectRandomUpgrades(3);
+    this.levelUpUpgrades = selectRandomUpgrades(3, this.player);
     this.levelUpPending = true;
     this.paused = true;
     this.hoveredUpgradeIndex = -1;
-
-    console.log(
-      `Level up ${this.currentLevelUpIndex + 1}/${
-        this.totalLevelsGained
-      }! Level:`,
-      this.levelUpQueue[this.currentLevelUpIndex]
-    );
   }
 
   /**
@@ -1032,9 +1022,6 @@ export class GameEngine {
    */
   selectCharacter(characterType) {
     if (!PLAYER_CONFIG[characterType]) return;
-
-    console.log("Character selected:", characterType);
-
     // Update player type
     this.playerType = characterType;
     this.showCharacterSelect = false;
@@ -1051,8 +1038,6 @@ export class GameEngine {
    */
   selectLevel(levelKey) {
     if (!LEVEL_CONFIG[levelKey]) return;
-
-    console.log("Level selected:", levelKey);
     // Update selected level AVANT d'appeler loadTileset/init
     this.selectedLevel = levelKey;
     this.loadTileset();
@@ -1079,25 +1064,19 @@ export class GameEngine {
     if (upgradeIndex < 0 || upgradeIndex >= this.levelUpUpgrades.length) return;
 
     const selectedUpgrade = this.levelUpUpgrades[upgradeIndex];
-    console.log("Upgrade selected:", selectedUpgrade);
     this.songManager.resume();
 
     // Apply the upgrade to player
     applyUpgrade(selectedUpgrade.id, { player: this.player });
+
+    this.player.upgrades.push(selectedUpgrade);
 
     // Move to next level-up or resume game
     this.currentLevelUpIndex++;
     this.hoveredUpgradeIndex = -1;
 
     if (this.currentLevelUpIndex < this.levelUpQueue.length) {
-      // More level-ups to show - stay on overlay, just change upgrades
-      this.levelUpUpgrades = selectRandomUpgrades(3);
-      console.log(
-        `Level up ${this.currentLevelUpIndex + 1}/${
-          this.totalLevelsGained
-        }! Level:`,
-        this.levelUpQueue[this.currentLevelUpIndex]
-      );
+      this.levelUpUpgrades = selectRandomUpgrades(3, this.player);
     } else {
       // All done, close overlay and resume game
       this.levelUpPending = false;
@@ -1181,11 +1160,17 @@ export class GameEngine {
       this.player.damage,
       this.player,
       this.player.projectileColor,
-      this.player.range, // portée max
+      this.player.range,
       projectileType
     );
     if (projectile && this.player.projectileSize) {
       projectile.radius = this.player.projectileSize;
+    }
+    const pierceValue = clamp(this.player.projectilePierce || 0, 0, 10);
+    projectile.piercing = pierceValue;
+    if (this.player.aoeSize && this.player.aoeSize > 0) {
+      projectile.aoeRadius = this.player.aoeSize;
+      projectile.piercing = 0;
     }
 
     this.projectiles.push(projectile);
@@ -1205,10 +1190,16 @@ export class GameEngine {
       this.player.damage,
       this.player,
       this.player.projectileColor,
-      this.player.range // portée max
+      this.player.range
     );
     if (projectile && this.player.projectileSize) {
       projectile.radius = this.player.projectileSize;
+    }
+    const pierceValue = clamp(this.player.projectilePierce || 0, 0, 10);
+    projectile.piercing = pierceValue;
+    if (this.player.aoeSize && this.player.aoeSize > 0) {
+      projectile.aoeRadius = this.player.aoeSize;
+      projectile.piercing = 0;
     }
 
     this.projectiles.push(projectile);
@@ -1251,7 +1242,6 @@ export class GameEngine {
     switch (collected.type) {
       case "ratataTail":
         this.score += collected.amount;
-        console.log(`Collected Ratata Tail! Score +${collected.amount}`);
         break;
     }
   }

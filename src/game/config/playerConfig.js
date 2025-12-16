@@ -17,7 +17,7 @@ const BASE_VALUES = {
   speed: 350,
   radius: 15,
   damage: 10,
-  attackSpeed: 0.3,
+  attackSpeed: 1,
   critChance: 10, // % base chance
   critDamage: 2.0, // 2x damage on crit
 };
