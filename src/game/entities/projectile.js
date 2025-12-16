@@ -163,6 +163,8 @@ export class Projectile {
   onHit() {
     this.hitCount++;
 
+    console.log(this)
+
     if (this.piercing === 0 || this.hitCount > this.piercing) {
       this.active = false;
       return true;

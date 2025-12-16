@@ -1,4 +1,3 @@
-
 import { circleCollision } from '../../utils/math.js';
 
 /**
@@ -12,64 +11,79 @@ export class CollisionSystem {
     this.projectileHits = 0;
     this.enemiesKilled = 0;
     this.soundManager = soundManager;
-    
+
     // Knockback forces
     this.projectileKnockback = 100;
-    this.enemyKnockback = 300; // Doubled to push enemies away more forcefully
+    this.enemyKnockback = 300;
+
+    // Boss defeated flag
+    this.bossDefeated = false;
   }
 
-    /**
-   * Check collision between player and boss (simple circle collision)
-   * @param {Object} player - Player entity
-   * @param {Object} boss - Boss entity
-   * @returns {boolean} True if collision occurred
+  /**
+   * Helper: check circle collision between two entities
+   */
+  isColliding(a, b) {
+    return circleCollision(a.x, a.y, a.radius, b.x, b.y, b.radius);
+  }
+
+  /**
+   * Helper: calculate critical hit multiplier
+   */
+  getCritMultiplier(player) {
+    if (!player) return { isCrit: false, multiplier: 1 };
+    const isCrit = Math.random() < player.critChance / 100;
+    return { isCrit, multiplier: isCrit ? player.critDamage : 1 };
+  }
+
+  /**
+   * Check collision between player and boss
    */
   checkPlayerBossCollision(player, boss) {
     if (!boss || boss.dead) return false;
-    return circleCollision(
-      player.x,
-      player.y,
-      player.radius,
-      boss.x,
-      boss.y,
-      boss.radius
-    );
+    if (this.isColliding(player, boss)) {
+      const damaged = player.takeDamage(boss.damage);
+      if (damaged) {
+        this.playerHits++;
+        // Knockback
+        const dx = player.x - boss.x;
+        const dy = player.y - boss.y;
+        player.applyKnockback(dx, dy, this.enemyKnockback * 0.5);
+        boss.applyKnockback(-dx, -dy, this.enemyKnockback);
+      }
+      return damaged;
+    }
+    return false;
   }
 
   /**
    * Check and handle all collisions
-   * @param {Object} player - Player entity
-   * @param {Array} enemies - Array of enemy entities
-   * @param {Array} projectiles - Array of projectile entities
-   * @returns {Object} Collision results
    */
-  checkCollisions(player, enemies, projectiles) {
+  checkCollisions(player, enemies, projectiles, boss = null) {
     const results = {
       playerHit: false,
       enemiesHit: [],
       projectilesHit: [],
       enemiesKilled: [],
       projectileHits: [], // Positions where projectiles hit enemies
-      enemyProjectilesHit: [], // Enemy projectiles that hit the player
+      enemyProjectilesHit: [],
     };
 
-    // Check player vs enemies
-    for (let i = 0; i < enemies.length; i++) {
-      const enemy = enemies[i];
+    // Player vs enemies
+    for (const enemy of enemies) {
       if (enemy.dead) continue;
-
-      if (this.checkPlayerEnemyCollision(player, enemy)) {
-        results.playerHit = true;
-      }
+      if (this.checkPlayerEnemyCollision(player, enemy)) results.playerHit = true;
     }
 
-    // Check projectiles vs enemies and vs player
-    for (let i = 0; i < projectiles.length; i++) {
-      const projectile = projectiles[i];
+    // Player vs boss
+    if (boss && this.checkPlayerBossCollision(player, boss)) results.playerHit = true;
+
+    // Projectiles
+    for (const projectile of projectiles) {
       if (!projectile.active) continue;
-      
-      // Check if enemy projectile hits player
-      if (projectile.owner && projectile.owner.type) {
+
+      // Enemy projectile hitting player
+      if (projectile.owner?.type) {
         if (this.checkProjectilePlayerCollision(projectile, player)) {
           results.enemyProjectilesHit.push(projectile);
           results.playerHit = true;
@@ -77,30 +91,18 @@ export class CollisionSystem {
         }
       }
 
-      for (let j = 0; j < enemies.length; j++) {
-        const enemy = enemies[j];
+      // Projectile vs enemies
+      for (const enemy of enemies) {
         if (enemy.dead) continue;
         if (projectile.owner === enemy) continue;
 
-        if (projectile.aoeRadius && projectile.aoeRadius > 0) {
-          const collided =
-            circleCollision(
-              projectile.x,
-              projectile.y,
-              projectile.radius,
-              enemy.x,
-              enemy.y,
-              enemy.radius
-            );
+        if (projectile.aoeRadius > 0) {
+          const collided = this.isColliding(projectile, enemy);
           if (collided) {
             const anyHit = this.applyAOEDamage(projectile, enemies, player, results);
             if (anyHit) {
               results.projectilesHit.push(projectile);
-              results.projectileHits.push({
-                x: projectile.x,
-                y: projectile.y,
-                enemyColor: enemy.color,
-              });
+              results.projectileHits.push({ x: projectile.x, y: projectile.y, enemyColor: enemy.color });
             }
             break;
           }
@@ -108,18 +110,8 @@ export class CollisionSystem {
           if (this.checkProjectileEnemyCollision(projectile, enemy, player)) {
             results.projectilesHit.push(projectile);
             results.enemiesHit.push(enemy);
-            results.projectileHits.push({
-              x: projectile.x,
-              y: projectile.y,
-              enemyColor: enemy.color,
-            });
-            if (enemy.dead) {
-              results.enemiesKilled.push(enemy);
-              this.enemiesKilled++;
-              if (enemy.isBoss) {
-                this.bossDefeated = true;
-              }
-            }
+            results.projectileHits.push({ x: projectile.x, y: projectile.y, enemyColor: enemy.color });
+            if (enemy.dead) results.enemiesKilled.push(enemy);
             if (!projectile.active) break;
           }
         }
@@ -129,239 +121,128 @@ export class CollisionSystem {
     return results;
   }
 
-  /**
-   * Check collision between player and enemy
-   * @param {Object} player - Player entity
-   * @param {Object} enemy - Enemy entity
-   * @returns {boolean} True if collision occurred
-   */
   checkPlayerEnemyCollision(player, enemy) {
-    const collision = circleCollision(
-      player.x,
-      player.y,
-      player.radius,
-      enemy.x,
-      enemy.y,
-      enemy.radius
-    );
+    if (!this.isColliding(player, enemy)) return false;
 
-    if (collision) {
-      // Apply damage to player
-      const damaged = player.takeDamage(enemy.damage);
-      
-      if (damaged) {
-        this.playerHits++;
-        
-        // Apply knockback to player away from enemy
-        const dx = player.x - enemy.x;
-        const dy = player.y - enemy.y;
-        player.applyKnockback(dx, dy, this.enemyKnockback * 0.5);
-        
-        // Apply strong knockback to enemy away from player
-        enemy.applyKnockback(-dx, -dy, this.enemyKnockback);
-      }
-      
-      return damaged;
-    }
+    const damaged = player.takeDamage(enemy.damage);
+    if (!damaged) return false;
 
-    return false;
+    this.playerHits++;
+
+    // Knockback
+    const dx = player.x - enemy.x;
+    const dy = player.y - enemy.y;
+    player.applyKnockback(dx, dy, this.enemyKnockback * 0.5);
+    enemy.applyKnockback(-dx, -dy, this.enemyKnockback);
+
+    return true;
   }
 
-  /**
-   * Check collision between projectile and enemy
-   * @param {Object} projectile - Projectile entity
-   * @param {Object} enemy - Enemy entity
-   * @param {Object} player - Player entity (for damage calculation)
-   * @returns {boolean} True if collision occurred
-   */
   checkProjectileEnemyCollision(projectile, enemy, player) {
-    const collision = circleCollision(
-      projectile.x,
-      projectile.y,
-      projectile.radius,
-      enemy.x,
-      enemy.y,
-      enemy.radius
-    );
+    if (!this.isColliding(projectile, enemy)) return false;
+    if (projectile.hitTargets?.has(enemy)) return false;
 
-    if (collision) {
-      if (projectile.hitTargets && projectile.hitTargets.has(enemy)) {
-        return false;
-      }
-      // Calculate total damage with critical hit chance
-      let baseDamage = projectile.damage + (player ? player.damage : 0);
-      let isCrit = false;
-      let critDamage = 1.0;
-      
-      if (player) {
-        isCrit = Math.random() < (player.critChance / 100); // Convert percentage to decimal
-        critDamage = isCrit ? player.critDamage : 1.0;
-      }
-      
-      const totalDamage = baseDamage * critDamage;
-      
-      // Apply damage to enemy
-      const died = enemy.takeDamage(totalDamage, projectile);
+    const { isCrit, multiplier } = this.getCritMultiplier(player);
+    const totalDamage = (projectile.damage + (player?.damage || 0)) * multiplier;
+    const died = enemy.takeDamage(totalDamage, projectile);
 
-      //PLay hit sound
-      this.soundManager.playHitSound();
+    // Play sound
+    this.soundManager.playHitSound();
 
-      //Heal the player if they have life steal
-      if (player && player.lifeSteal) {
-        const healAmount = totalDamage * player.lifeSteal;
-        player.heal(healAmount);
-      }
-      
-      // Apply knockback to enemy
-      const dx = enemy.x - projectile.x;
-      const dy = enemy.y - projectile.y;
-      enemy.applyKnockback(dx, dy, this.projectileKnockback);
-      
-      // Mark projectile as hit
-      projectile.onHit();
-      if (projectile.hitTargets) {
-        projectile.hitTargets.add(enemy);
-      }
-      
-      this.projectileHits++;
-      
-      // Store critical hit information for damage display
-      projectile.lastHitCrit = isCrit;
-      projectile.lastHitCritMultiplier = critDamage;
-      
-      return true;
+    // Lifesteal
+    if (player?.lifeSteal) player.heal(totalDamage * player.lifeSteal);
+
+    // Knockback
+    const dx = enemy.x - projectile.x;
+    const dy = enemy.y - projectile.y;
+    enemy.applyKnockback(dx, dy, this.projectileKnockback);
+
+    projectile.onHit();
+    if (projectile.hitTargets) projectile.hitTargets.add(enemy);
+
+    projectile.lastHitCrit = isCrit;
+    projectile.lastHitCritMultiplier = multiplier;
+
+    this.projectileHits++;
+    if (died) {
+      this.enemiesKilled++;
+      if (enemy.isBoss) this.bossDefeated = true;
     }
 
-    return false;
+    return true;
   }
 
   applyAOEDamage(projectile, enemies, player, results) {
     let anyHit = false;
-    let isCrit = false;
-    let critDamage = 1.0;
-    if (player) {
-      isCrit = Math.random() < (player.critChance / 100);
-      critDamage = isCrit ? player.critDamage : 1.0;
-    }
-    for (let i = 0; i < enemies.length; i++) {
-      const enemy = enemies[i];
-      if (enemy.dead) continue;
-      if (projectile.owner === enemy) continue;
+    const { isCrit, multiplier } = this.getCritMultiplier(player);
+
+    for (const enemy of enemies) {
+      if (enemy.dead || projectile.owner === enemy) continue;
+
       const dx = enemy.x - projectile.x;
       const dy = enemy.y - projectile.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist > projectile.aoeRadius + enemy.radius) continue;
-      let baseDamage = projectile.damage + (player ? player.damage : 0);
-      const totalDamage = baseDamage * critDamage;
+
+      const totalDamage = (projectile.damage + (player?.damage || 0)) * multiplier;
       const died = enemy.takeDamage(totalDamage, projectile);
+
       this.soundManager.playHitSound();
       enemy.applyKnockback(dx, dy, this.projectileKnockback);
-      if (projectile.hitTargets) {
-        projectile.hitTargets.add(enemy);
-      }
-      this.projectileHits++;
+
+      if (projectile.hitTargets) projectile.hitTargets.add(enemy);
+
       projectile.lastHitCrit = isCrit;
-      projectile.lastHitCritMultiplier = critDamage;
+      projectile.lastHitCritMultiplier = multiplier;
+
       results.enemiesHit.push(enemy);
       if (died) {
         results.enemiesKilled.push(enemy);
         this.enemiesKilled++;
-        if (enemy.isBoss) {
-          this.bossDefeated = true;
-        }
+        if (enemy.isBoss) this.bossDefeated = true;
       }
+
       anyHit = true;
     }
+
     projectile.active = false;
     return anyHit;
   }
 
-  /**
-   * Check collision between enemy projectile and player
-   * @param {Object} projectile - Enemy projectile entity
-   * @param {Object} player - Player entity
-   * @returns {boolean} True if collision occurred
-   */
   checkProjectilePlayerCollision(projectile, player) {
-    const collision = circleCollision(
-      projectile.x,
-      projectile.y,
-      projectile.radius,
-      player.x,
-      player.y,
-      player.radius
-    );
+    if (!this.isColliding(projectile, player)) return false;
 
-    if (collision) {
-      // Apply damage to player
-      const damaged = player.takeDamage(projectile.damage);
-      
-      if (damaged) {
-        this.playerHits++;
-        
-        // Apply knockback to player away from projectile
-        const dx = player.x - projectile.x;
-        const dy = player.y - projectile.y;
-        player.applyKnockback(dx, dy, this.projectileKnockback * 0.7);
-      }
-      
-      // Deactivate projectile
-      projectile.active = false;
-      
-      return true;
+    const damaged = player.takeDamage(projectile.damage);
+    if (damaged) {
+      this.playerHits++;
+      const dx = player.x - projectile.x;
+      const dy = player.y - projectile.y;
+      player.applyKnockback(dx, dy, this.projectileKnockback * 0.7);
     }
 
-    return false;
+    projectile.active = false;
+    return damaged;
   }
 
-  /**
-   * Clean up dead enemies from array
-   * @param {Array} enemies - Array of enemy entities
-   * @returns {number} Number of enemies removed
-   */
   cleanupDeadEnemies(enemies) {
     const initialLength = enemies.length;
-    
-    // Remove dead enemies after a short delay (for visual feedback)
-    for (let i = enemies.length - 1; i >= 0; i--) {
-      if (enemies[i].dead) {
-        enemies.splice(i, 1);
-      }
-    }
-    
+    for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].dead) enemies.splice(i, 1);
     return initialLength - enemies.length;
   }
 
-  /**
-   * Clean up inactive projectiles from array
-   * @param {Array} projectiles - Array of projectile entities
-   * @returns {number} Number of projectiles removed
-   */
   cleanupInactiveProjectiles(projectiles) {
     const initialLength = projectiles.length;
-    
-    for (let i = projectiles.length - 1; i >= 0; i--) {
-      if (!projectiles[i].active) {
-        projectiles.splice(i, 1);
-      }
-    }
-    
+    for (let i = projectiles.length - 1; i >= 0; i--) if (!projectiles[i].active) projectiles.splice(i, 1);
     return initialLength - projectiles.length;
   }
 
-  /**
-   * Reset collision stats
-   */
   reset() {
     this.playerHits = 0;
     this.projectileHits = 0;
     this.enemiesKilled = 0;
+    this.bossDefeated = false;
   }
 
-  /**
-   * Get collision stats
-   * @returns {Object} Collision statistics
-   */
   getStats() {
     return {
       playerHits: this.playerHits,

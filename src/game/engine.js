@@ -74,7 +74,6 @@ export class GameEngine {
       ratata: new Image(),
       caterpie: new Image(),
       quagsire: new Image(),
-      
     };
     // Load enemy profile images
     this.enemyProfileImages.piplup.src = piplupProfile;
@@ -85,7 +84,11 @@ export class GameEngine {
     this.enemyProfileImages.quagsire.src = quagsireProfile;
 
     // Initialize pauseButtons to prevent undefined errors
-    this.pauseButtons = { restart: {x:0,y:0,width:0,height:0}, menu: {x:0,y:0,width:0,height:0}, continue: {x:0,y:0,width:0,height:0} };
+    this.pauseButtons = {
+      restart: { x: 0, y: 0, width: 0, height: 0 },
+      menu: { x: 0, y: 0, width: 0, height: 0 },
+      continue: { x: 0, y: 0, width: 0, height: 0 },
+    };
     // Level selection state
     this.showLevelSelect = false;
     this.selectedLevel = null;
@@ -133,7 +136,12 @@ export class GameEngine {
 
     // Game systems
     this.sondManager = new SoundManager(this);
-    this.spawnSystem = new SpawnSystem(canvas.width, canvas.height, null, this.songManager);
+    this.spawnSystem = new SpawnSystem(
+      canvas.width,
+      canvas.height,
+      null,
+      this.songManager
+    );
     this.collisionSystem = new CollisionSystem(this.sondManager);
     this.particleManager = new ParticleManager();
     this.minimap = new Minimap(canvas.width, canvas.height);
@@ -202,14 +210,14 @@ export class GameEngine {
 
     // Reset systems
     this.spawnSystem.reset();
-    
+
     // Set level configuration for spawn system
     if (this.selectedLevel) {
       const levelConfig = getLevel(this.selectedLevel);
       levelConfig.__levelKey = this.selectedLevel;
       this.spawnSystem.setLevelConfig(levelConfig);
     }
-    
+
     this.collisionSystem.reset();
     this.particleManager.clear();
     this.mapSystem.reset();
@@ -224,7 +232,6 @@ export class GameEngine {
     // Center camera on player
     this.camera.x = this.player.x - this.canvas.width / 2;
     this.camera.y = this.player.y - this.canvas.height / 2;
-
   }
 
   /**
@@ -246,7 +253,11 @@ export class GameEngine {
       }
 
       // Back to character select from level select (ESC or Backspace)
-      if ((e.code === "Escape" || e.code === "Backspace") && this.showLevelSelect && this.showBackToCharacter) {
+      if (
+        (e.code === "Escape" || e.code === "Backspace") &&
+        this.showLevelSelect &&
+        this.showBackToCharacter
+      ) {
         this.showLevelSelect = false;
         this.showCharacterSelect = true;
         this.showBackToCharacter = false;
@@ -271,30 +282,33 @@ export class GameEngine {
 
       // Pause screen button hover (optional: can add hover effect)
       if (this.paused && this.pauseButtons) {
-      
         const { restart, menu, continue: continueBtn } = this.pauseButtons;
         const mx = this.input.mouse.x;
         const my = this.input.mouse.y;
         if (
-          mx >= continueBtn.x && mx <= continueBtn.x + continueBtn.width &&
-          my >= continueBtn.y && my <= continueBtn.y + continueBtn.height
+          mx >= continueBtn.x &&
+          mx <= continueBtn.x + continueBtn.width &&
+          my >= continueBtn.y &&
+          my <= continueBtn.y + continueBtn.height
         ) {
           this.hoveredPauseButton = "continue";
         } else if (
-          mx >= restart.x && mx <= restart.x + restart.width &&
-          my >= restart.y && my <= restart.y + restart.height
+          mx >= restart.x &&
+          mx <= restart.x + restart.width &&
+          my >= restart.y &&
+          my <= restart.y + restart.height
         ) {
           this.hoveredPauseButton = "restart";
         } else if (
-          mx >= menu.x && mx <= menu.x + menu.width &&
-          my >= menu.y && my <= menu.y + menu.height
-        ) { 
+          mx >= menu.x &&
+          mx <= menu.x + menu.width &&
+          my >= menu.y &&
+          my <= menu.y + menu.height
+        ) {
           this.hoveredPauseButton = "menu";
         } else {
           this.hoveredPauseButton = null;
         }
-
-
       }
 
       // Check hover on character selection
@@ -320,7 +334,6 @@ export class GameEngine {
           this.hoveredCharacter = null;
         }
       }
-
 
       // Check hover on level selection
       if (this.showLevelSelect && this.levelSelectBounds) {
@@ -371,21 +384,31 @@ export class GameEngine {
     // Mouse click for upgrade selection, character selection, level selection, or pause screen buttons
     this.canvas.addEventListener("click", (e) => {
       // Pause screen buttons
-      if (this.paused && this.pauseButtons && !this.levelUpPending && !this.showCharacterSelect && !this.showLevelSelect) {
+      if (
+        this.paused &&
+        this.pauseButtons &&
+        !this.levelUpPending &&
+        !this.showCharacterSelect &&
+        !this.showLevelSelect
+      ) {
         const { restart, menu, continueBtn } = this.pauseButtons;
         const mx = this.input.mouse.x;
         const my = this.input.mouse.y;
         if (
-          mx >= restart.x && mx <= restart.x + restart.width &&
-          my >= restart.y && my <= restart.y + restart.height
+          mx >= restart.x &&
+          mx <= restart.x + restart.width &&
+          my >= restart.y &&
+          my <= restart.y + restart.height
         ) {
           this.paused = false;
           this.restart();
           return;
         }
         if (
-          mx >= menu.x && mx <= menu.x + menu.width &&
-          my >= menu.y && my <= menu.y + menu.height
+          mx >= menu.x &&
+          mx <= menu.x + menu.width &&
+          my >= menu.y &&
+          my <= menu.y + menu.height
         ) {
           this.paused = false;
           this.showCharacterSelect = true;
@@ -397,21 +420,34 @@ export class GameEngine {
       }
 
       //Check for continue button click
-      if (this.paused && this.pauseButtons && !this.levelUpPending && !this.showCharacterSelect && !this.showLevelSelect) {
+      if (
+        this.paused &&
+        this.pauseButtons &&
+        !this.levelUpPending &&
+        !this.showCharacterSelect &&
+        !this.showLevelSelect
+      ) {
         const { continue: continueBtn } = this.pauseButtons;
         const mx = this.input.mouse.x;
         const my = this.input.mouse.y;
 
         if (
-          mx >= continueBtn.x && mx <= continueBtn.x + continueBtn.width &&
-          my >= continueBtn.y && my <= continueBtn.y + continueBtn.height
+          mx >= continueBtn.x &&
+          mx <= continueBtn.x + continueBtn.width &&
+          my >= continueBtn.y &&
+          my <= continueBtn.y + continueBtn.height
         ) {
           this.paused = false;
           return;
         }
       }
 
-      if (this.showCharacterSelect && this.characterSelectBounds && !this.levelUpPending && !this.showLevelSelect) {
+      if (
+        this.showCharacterSelect &&
+        this.characterSelectBounds &&
+        !this.levelUpPending &&
+        !this.showLevelSelect
+      ) {
         // Check for character selection click
         const characters = Object.keys(PLAYER_CONFIG);
         for (let i = 0; i < characters.length; i++) {
@@ -498,10 +534,10 @@ export class GameEngine {
    */
   loadTileset() {
     let imgSrc = tilesetImage;
-    if (this.selectedLevel === 'glacier' || this.selectedLevel === 2) {
+    if (this.selectedLevel === "glacier" || this.selectedLevel === 2) {
       imgSrc = tilesetToundra;
     }
-    if (this.selectedLevel === 'volcano' || this.selectedLevel === 3) {
+    if (this.selectedLevel === "volcano" || this.selectedLevel === 3) {
       imgSrc = tilesetVolcano;
     }
     const img = new Image();
@@ -686,7 +722,7 @@ export class GameEngine {
    */
   togglePause() {
     this.paused = !this.paused;
-    if(this.paused) {
+    if (this.paused) {
       this.songManager.suspend();
     } else {
       this.songManager.resume();
@@ -845,8 +881,6 @@ export class GameEngine {
       this.onPlayerHit();
     }
 
-
-
     if (collisionResults.enemiesKilled.length > 0) {
       this.score += collisionResults.enemiesKilled.length * 10;
 
@@ -877,13 +911,12 @@ export class GameEngine {
         );
       }
 
-      if(collisionResults.enemiesKilled.filter(e => e.isBoss).length > 0) {
+      if (collisionResults.enemiesKilled.filter((e) => e.isBoss).length > 0) {
         this.bossDefeated = true;
         setTimeout(() => {
           this.gameOver = true;
         }, 1000);
       }
-
     }
 
     // Spawn particles for projectile hits
@@ -894,25 +927,32 @@ export class GameEngine {
 
         const isCrit = projectile.lastHitCrit || false;
         const critMultiplier = projectile.lastHitCritMultiplier || 1.0;
-        
+
         let baseDamage = projectile.damage + this.player.damage;
         let finalDamage = baseDamage * critMultiplier;
-        
+
         const damageColor = isCrit ? "#FFD700" : "#FFFFFF"; // Yellow for crits, white for normal
         const damageNum = createDamageNumber(
-          hit.x, 
-          hit.y, 
-          finalDamage, 
-          damageColor, 
-          isCrit, 
+          hit.x,
+          hit.y,
+          finalDamage,
+          damageColor,
+          isCrit,
           this.player.critDamage
         );
         this.damageNumbers.push(damageNum);
         if (projectile.aoeRadius && projectile.aoeRadius > 0) {
-          const color = hit.enemyColor || this.player.projectileColor || "#FFA500";
-          this.particleManager.spawnExplosion(hit.x, hit.y, projectile.aoeRadius, color);
+          const color =
+            hit.enemyColor || this.player.projectileColor || "#FFA500";
+          this.particleManager.spawnExplosion(
+            hit.x,
+            hit.y,
+            projectile.aoeRadius,
+            color
+          );
         } else {
-          const color = hit.enemyColor || this.player.projectileColor || "#FFA500";
+          const color =
+            hit.enemyColor || this.player.projectileColor || "#FFA500";
           this.particleManager.spawnHitImpact(hit.x, hit.y, color, 6);
         }
       }
@@ -977,6 +1017,12 @@ export class GameEngine {
 
     const levelsGained = [];
 
+    this.levelUpProgress = 0;
+    this.hoveredUpgradeIndex = null;
+    this.particles = [];
+    this.upgradeCardBounds = [];
+    this.currentLevelUpIndex = 0;
+
     // Calculate how many levels were gained
     while (this.player.xp >= this.player.xpToNextLevel) {
       this.player.level++;
@@ -998,7 +1044,6 @@ export class GameEngine {
    * Show the next level-up in the queue
    */
   showNextLevelUp() {
-
     this.songManager.suspend();
 
     if (this.currentLevelUpIndex >= this.levelUpQueue.length) {
@@ -1060,7 +1105,6 @@ export class GameEngine {
    * @param {number} upgradeIndex - Selected upgrade index (0-2)
    */
   selectUpgrade(upgradeIndex) {
-    
     if (upgradeIndex < 0 || upgradeIndex >= this.levelUpUpgrades.length) return;
 
     const selectedUpgrade = this.levelUpUpgrades[upgradeIndex];
@@ -1142,10 +1186,11 @@ export class GameEngine {
     // Use player's aimAngle (which is set based on autoShoot or manual aim)
     const angle = this.player.aimAngle;
 
-
     // Déterminer le type de projectile depuis la config du Pokémon
     let projectileType = null;
-    const pokemonConfig = getPokemonConfig(this.player.type || this.player.characterType);
+    const pokemonConfig = getPokemonConfig(
+      this.player.type || this.player.characterType
+    );
     if (pokemonConfig && pokemonConfig.projectileType) {
       projectileType = pokemonConfig.projectileType;
     }
@@ -1321,12 +1366,11 @@ export class GameEngine {
     // Render UI
     this.renderUI();
 
-
     // Render inventory (au-dessus de la minimap)
     if (this.inventorySystem) {
       const minimapBounds = this.minimap.getBounds();
       this.inventorySystem.x = minimapBounds.x;
-      this.inventorySystem.y = 75
+      this.inventorySystem.y = 75;
       this.inventorySystem.render(this.ctx);
     }
     // Render minimap
@@ -1416,7 +1460,6 @@ export class GameEngine {
     const barHeight = 20;
     const iconSize = 44;
 
-    
     // Background panel with gradient and border
     const panelGradient = ctx.createLinearGradient(0, 0, 0, hudHeight);
     panelGradient.addColorStop(0, "rgba(20, 20, 35, 0.98)");
@@ -1425,7 +1468,11 @@ export class GameEngine {
     ctx.fillRect(0, 0, this.canvas.width, hudHeight);
 
     // === BOSS TIMER OU BARRE DE VIE ===
-    if (this.spawnSystem && this.spawnSystem.getBossConfig() && !this.bossDefeated) {
+    if (
+      this.spawnSystem &&
+      this.spawnSystem.getBossConfig() &&
+      !this.bossDefeated
+    ) {
       let boss = null;
       for (let i = 0; i < this.enemies.length; i++) {
         if (this.enemies[i].isBoss && !this.enemies[i].dead) {
@@ -1444,49 +1491,60 @@ export class GameEngine {
         const hpPercent = boss.displayedHealth / boss.maxHealth;
         const truePercent = boss.health / boss.maxHealth;
         ctx.globalAlpha = 0.92;
-        ctx.fillStyle = '#222240';
+        ctx.fillStyle = "#222240";
         ctx.fillRect(barX, barY, barW, barH);
         ctx.globalAlpha = 1.0;
-        ctx.fillStyle = '#C93030';
+        ctx.fillStyle = "#C93030";
         ctx.fillRect(barX, barY, barW * hpPercent, barH);
         if (hpPercent > truePercent) {
-          ctx.fillStyle = 'rgba(255,255,255,0.18)';
-          ctx.fillRect(barX + barW * truePercent, barY, barW * (hpPercent - truePercent), barH);
+          ctx.fillStyle = "rgba(255,255,255,0.18)";
+          ctx.fillRect(
+            barX + barW * truePercent,
+            barY,
+            barW * (hpPercent - truePercent),
+            barH
+          );
         }
-        ctx.strokeStyle = '#000000ff';
+        ctx.strokeStyle = "#000000ff";
         ctx.lineWidth = 2;
         ctx.strokeRect(barX, barY, barW, barH);
         ctx.font = "bold 15px 'Pokemon Classic', Arial";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff';
-        const bossName = boss.type ? boss.type.toUpperCase() : 'BOSS';
-        const hpText = `${Math.max(0, Math.floor(boss.displayedHealth))} / ${boss.maxHealth}`;
-        ctx.fillText(`${bossName}  ${hpText}`, barX + barW / 2, barY + barH / 2);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        const bossName = boss.type ? boss.type.toUpperCase() : "BOSS";
+        const hpText = `${Math.max(0, Math.floor(boss.displayedHealth))} / ${
+          boss.maxHealth
+        }`;
+        ctx.fillText(
+          `${bossName}  ${hpText}`,
+          barX + barW / 2,
+          barY + barH / 2
+        );
       } else {
         // Affiche le timer avant l'apparition du boss
         const bossTimer = this.spawnSystem.getBossTimer();
         const total = bossConfig.spawnTimer || 1;
         const progress = Math.min(bossTimer / total, 1);
         ctx.globalAlpha = 0.85;
-        ctx.fillStyle = '#222240';
+        ctx.fillStyle = "#222240";
         ctx.fillRect(barX, barY, barW, barH);
         ctx.globalAlpha = 1.0;
-        ctx.fillStyle = progress < 1 ? '#000000ff' : '#C93030';
+        ctx.fillStyle = progress < 1 ? "#000000ff" : "#C93030";
         ctx.fillRect(barX, barY, barW * progress, barH);
-        ctx.strokeStyle = '#000000ff';
+        ctx.strokeStyle = "#000000ff";
         ctx.lineWidth = 2;
         ctx.strokeRect(barX, barY, barW, barH);
         ctx.font = "bold 16px 'Pokemon Classic', Arial";
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff';
-        let label = progress < 1 ? `Boss dans ${(total - bossTimer).toFixed(1)}s` : '';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        let label =
+          progress < 1 ? `Boss dans ${(total - bossTimer).toFixed(1)}s` : "";
         ctx.fillText(label, barX + barW / 2, barY + barH / 2);
       }
       ctx.restore();
     }
-
 
     // Bottom border
     ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
@@ -1583,7 +1641,12 @@ export class GameEngine {
     ctx.fillRect(hpBarX, xpBarY, hpBarWidth, xpBarHeight);
     // Remplissage
     ctx.fillStyle = "#53CEF7";
-    ctx.fillRect(hpBarX + 1, xpBarY + 1, Math.max(0, (hpBarWidth - 2) * xpPercentPlayer, 0), xpBarHeight - 2);
+    ctx.fillRect(
+      hpBarX + 1,
+      xpBarY + 1,
+      Math.max(0, (hpBarWidth - 2) * xpPercentPlayer, 0),
+      xpBarHeight - 2
+    );
     // Bordure
     ctx.strokeStyle = "rgba(0, 191, 255, 0.5)";
     ctx.lineWidth = 1;
@@ -1619,11 +1682,10 @@ export class GameEngine {
     const cardWidth = 180;
     const cardHeight = 280;
     const cardGap = 32;
-    const characters = Object.keys(PLAYER_CONFIG)
+    const characters = Object.keys(PLAYER_CONFIG);
 
-    
-
-    const totalWidth = cardWidth * characters.length + cardGap * (characters.length - 1);
+    const totalWidth =
+      cardWidth * characters.length + cardGap * (characters.length - 1);
     const startX = centerX - totalWidth / 2;
     const cardY = centerY - cardHeight / 2 + 20;
 
@@ -1646,7 +1708,7 @@ export class GameEngine {
 
       // Card background
       const bgColor = isHovered
-        ? `rgba(${this.hexToRgb(config.dominantColor).join(",")}, 0.2)` 
+        ? `rgba(${this.hexToRgb(config.dominantColor).join(",")}, 0.2)`
         : "rgba(24, 24, 48, 0.95)";
       ctx.fillStyle = bgColor;
       ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
@@ -1679,7 +1741,9 @@ export class GameEngine {
         this.characterProfileImages[characterType] &&
         this.characterProfileImages[characterType].complete
       ) {
-        ctx.fillStyle = `rgba(${this.hexToRgb(config.dominantColor).join(",")}, 0.15)`;
+        ctx.fillStyle = `rgba(${this.hexToRgb(config.dominantColor).join(
+          ","
+        )}, 0.15)`;
         ctx.fillRect(imageX, imageY, imageSize, imageSize);
         ctx.strokeStyle = config.dominantColor;
         ctx.lineWidth = 2;
@@ -1698,11 +1762,7 @@ export class GameEngine {
       ctx.font = "bold 18px 'Pokemon Classic', Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.fillText(
-        config.name,
-        cardX + cardWidth / 2,
-        imageY + imageSize + 12
-      );
+      ctx.fillText(config.name, cardX + cardWidth / 2, imageY + imageSize + 12);
 
       // Stats
       const statsStartY = imageY + imageSize + 50;
@@ -1746,7 +1806,11 @@ export class GameEngine {
   hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result
-      ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+      ? [
+          parseInt(result[1], 16),
+          parseInt(result[2], 16),
+          parseInt(result[3], 16),
+        ]
       : [255, 255, 255];
   }
 
@@ -1812,7 +1876,7 @@ export class GameEngine {
     const cardHeight = 160;
     const cardGap = 16;
     const levels = getAllLevels();
-    
+
     // Create grid layout (3 columns, 2 rows)
     const columns = 3;
     const rows = Math.ceil(levels.length / columns);
@@ -1842,14 +1906,25 @@ export class GameEngine {
       };
 
       // Card background with gradient
-      const gradient = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardHeight);
+      const gradient = ctx.createLinearGradient(
+        cardX,
+        cardY,
+        cardX,
+        cardY + cardHeight
+      );
       gradient.addColorStop(0, "rgba(30, 30, 50, 0.9)");
       gradient.addColorStop(1, "rgba(20, 20, 35, 0.95)");
       ctx.fillStyle = gradient;
       ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
 
       // Difficulty color bar
-      const difficultyColors = ["#2ECC71", "#F39C12", "#E74C3C", "#C0392B", "#8B0000"];
+      const difficultyColors = [
+        "#2ECC71",
+        "#F39C12",
+        "#E74C3C",
+        "#C0392B",
+        "#8B0000",
+      ];
       const diffColor = difficultyColors[Math.min(level.difficulty - 1, 4)];
       const barHeight = 4;
       ctx.fillStyle = diffColor;
@@ -1893,27 +1968,29 @@ export class GameEngine {
       const enabledEnemies = Object.entries(level.enemies)
         .filter(([_, config]) => config.enabled)
         .map(([type]) => type);
-      
+
       const iconSize = 24;
       const iconGap = 2;
       const iconAreaStartY = cardY + 58;
 
       if (enabledEnemies.length > 0) {
         // Calculate total width needed
-        const totalIconsWidth = enabledEnemies.length * iconSize + (enabledEnemies.length - 1) * iconGap;
+        const totalIconsWidth =
+          enabledEnemies.length * iconSize +
+          (enabledEnemies.length - 1) * iconGap;
         const startIconX = cardX + (cardWidth - totalIconsWidth) / 2;
-        
+
         enabledEnemies.forEach((enemyType, idx) => {
           const iconX = startIconX + idx * (iconSize + iconGap);
           const iconY = iconAreaStartY;
-          
+
           // Draw icon background
           ctx.fillStyle = "rgba(255, 215, 0, 0.1)";
           ctx.fillRect(iconX, iconY, iconSize, iconSize);
           ctx.strokeStyle = "rgba(255, 215, 0, 0.3)";
           ctx.lineWidth = 1;
           ctx.strokeRect(iconX, iconY, iconSize, iconSize);
-          
+
           // Draw enemy image if loaded
           if (
             this.enemyProfileImages[enemyType] &&
@@ -1943,13 +2020,15 @@ export class GameEngine {
       // Difficulty text
       ctx.fillStyle = diffColor;
       ctx.font = "bold 10px 'Pokemon Classic', Arial";
-      ctx.fillText(`Difficulty: ${level.difficulty}`, cardX + cardWidth / 2, difficultyStartY + 14);
+      ctx.fillText(
+        `Difficulty: ${level.difficulty}`,
+        cardX + cardWidth / 2,
+        difficultyStartY + 14
+      );
 
       // Select button
       const buttonY = cardY + cardHeight - 24;
-      ctx.fillStyle = isHovered
-        ? "#FFD700"
-        : "rgba(255, 215, 0, 0.2)";
+      ctx.fillStyle = isHovered ? "#FFD700" : "rgba(255, 215, 0, 0.2)";
       ctx.fillRect(cardX + 12, buttonY, cardWidth - 24, 22);
 
       ctx.strokeStyle = "#FFD700";
@@ -1964,33 +2043,75 @@ export class GameEngine {
     });
   }
 
-  /**
-   * Render level-up overlay with upgrade choices
-   */
+  // --- Helpers ---
+  easeOutElastic(t) {
+    const c4 = (2 * Math.PI) / 3;
+    return t === 0
+      ? 0
+      : t === 1
+      ? 1
+      : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+  }
+
   renderLevelUpOverlay() {
     const ctx = this.ctx;
     const centerX = this.canvas.width / 2;
     const centerY = this.canvas.height / 2;
 
-    // Semi-transparent background
-    ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
+    // --- Level-up progress slow ---
+    if (!this.levelUpProgress) this.levelUpProgress = 0;
+    this.levelUpProgress += 0.02; // slower animation
+    if (this.levelUpProgress > 1) this.levelUpProgress = 1;
+
+    // --- Background ---
+    const bgAlpha = 0.85 + 0.03 * Math.sin(Date.now() / 500);
+    ctx.fillStyle = `rgba(0,0,0,${bgAlpha})`;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Title
+    // --- Particles ---
+    if (!this.particles) {
+      this.particles = [];
+      for (let i = 0; i < 40; i++) {
+        this.particles.push({
+          x: centerX,
+          y: 100,
+          vx: (Math.random() - 0.5) * 2,
+          vy: Math.random() * -2 - 1,
+          size: Math.random() * 3 + 2,
+          alpha: Math.random() * 0.8 + 0.2,
+        });
+      }
+    }
+    this.particles.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha *= 0.96;
+      ctx.fillStyle = `rgba(255,215,0,${p.alpha})`;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    this.particles = this.particles.filter((p) => p.alpha > 0);
+
+    // --- TITLE ---
+    const titleScale = 0.8 + 0.4 * this.easeOutElastic(this.levelUpProgress);
+    ctx.save();
+    ctx.translate(centerX, 100);
+    ctx.scale(titleScale, titleScale);
     ctx.fillStyle = "#FFD700";
     ctx.font = "bold 48px 'Pokemon Classic', Arial";
     ctx.textAlign = "center";
     ctx.shadowBlur = 20;
-    ctx.shadowColor = "rgba(255, 215, 0, 0.5)";
-    ctx.fillText("LEVEL UP!", centerX, 100);
+    ctx.shadowColor = "rgba(255,215,0,0.6)";
+    ctx.fillText("LEVEL UP!", 0, 0);
+    ctx.restore();
     ctx.shadowBlur = 0;
 
-    // Current level being displayed
+    // --- Subtitle ---
     const currentLevel = this.levelUpQueue[this.currentLevelUpIndex];
-
-    // Subtitle with progress if multiple levels
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "24px 'Pokemon Classic', Arial";
+    ctx.textAlign = "center";
     if (this.totalLevelsGained > 1) {
       ctx.fillText(
         `Level ${currentLevel} - Choose an upgrade (${
@@ -1999,8 +2120,6 @@ export class GameEngine {
         centerX,
         150
       );
-
-      // Show total levels gained
       ctx.fillStyle = "#FFD700";
       ctx.font = "18px 'Pokemon Classic', Arial";
       ctx.fillText(`+${this.totalLevelsGained} LEVELS!`, centerX, 180);
@@ -2008,217 +2127,162 @@ export class GameEngine {
       ctx.fillText(`Level ${currentLevel} - Choose an upgrade`, centerX, 150);
     }
 
-    // Upgrade cards - Modern design
-    const cardWidth = 300;
+    // --- CARD CONFIG ---
+    const cardWidth = 260;
     const cardHeight = 220;
-    const cardGap = 25;
+    const cardGap = 50;
     const totalWidth = cardWidth * 3 + cardGap * 2;
     const startX = centerX - totalWidth / 2;
-    const cardY = centerY - cardHeight / 2 + 30;
+    const baseY = centerY - cardHeight / 2 + 50;
 
     const rarityColors = {
       common: {
-        bg1: "rgba(70, 70, 85, 0.95)",
-        bg2: "rgba(50, 50, 65, 0.95)",
+        bg1: "rgba(70,70,85,0.95)",
+        bg2: "rgba(50,50,65,0.95)",
         border: "#9CA3AF",
-        glow: "rgba(156, 163, 175, 0.4)",
+        glow: "rgba(156,163,175,0.4)",
         accent: "#D1D5DB",
       },
       rare: {
-        bg1: "rgba(30, 70, 150, 0.95)",
-        bg2: "rgba(20, 50, 110, 0.95)",
+        bg1: "rgba(30,70,150,0.95)",
+        bg2: "rgba(20,50,110,0.95)",
         border: "#60A5FA",
-        glow: "rgba(96, 165, 250, 0.6)",
+        glow: "rgba(96,165,250,0.6)",
         accent: "#93C5FD",
       },
       epic: {
-        bg1: "rgba(120, 40, 180, 0.95)",
-        bg2: "rgba(90, 30, 140, 0.95)",
+        bg1: "rgba(120,40,180,0.95)",
+        bg2: "rgba(90,30,140,0.95)",
         border: "#C084FC",
-        glow: "rgba(192, 132, 252, 0.6)",
+        glow: "rgba(192,132,252,0.6)",
         accent: "#E9D5FF",
       },
       legendary: {
-        bg1: "rgba(220, 100, 20, 0.95)",
-        bg2: "rgba(180, 70, 10, 0.95)",
+        bg1: "rgba(220,100,20,0.95)",
+        bg2: "rgba(180,70,10,0.95)",
         border: "#FBBF24",
-        glow: "rgba(251, 191, 36, 0.7)",
+        glow: "rgba(251,191,36,0.7)",
         accent: "#FCD34D",
       },
     };
 
-    for (let i = 0; i < this.levelUpUpgrades.length; i++) {
-      const upgrade = this.levelUpUpgrades[i];
+    this.upgradeCardBounds = [];
+
+    this.levelUpUpgrades.forEach((upgrade, i) => {
+      const delay = i * 0.2; // cascade slower
+      const anim = Math.min(Math.max(this.levelUpProgress - delay, 0) * 10, 1);
+      if (anim <= 0) return;
+
       const cardX = startX + i * (cardWidth + cardGap);
       const colors = rarityColors[upgrade.rarity] || rarityColors.common;
       const isHovered = this.hoveredUpgradeIndex === i;
 
-      // Hover animation offset
-      const hoverOffset = isHovered ? -8 : 0;
-      const currentCardY = cardY + hoverOffset;
+      const hoverOffset = isHovered ? -10 : 0;
+      const cardY = baseY + hoverOffset + (1 - anim) * 80;
+      const cardScale = isHovered ? 1.06 : 1;
 
-      // Card shadow
-      if (isHovered) {
-        ctx.shadowBlur = 30;
-        ctx.shadowColor = colors.glow;
-        ctx.shadowOffsetY = 10;
-      } else {
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-        ctx.shadowOffsetY = 5;
-      }
+      ctx.save();
+      ctx.translate(cardX + cardWidth / 2, cardY + cardHeight / 2);
+      ctx.scale(cardScale, cardScale);
+      ctx.translate(-cardWidth / 2, -cardHeight / 2);
 
-      // Card background with gradient
-      const cardGradient = ctx.createLinearGradient(
-        cardX,
-        currentCardY,
-        cardX,
-        currentCardY + cardHeight
-      );
-      cardGradient.addColorStop(0, colors.bg1);
-      cardGradient.addColorStop(1, colors.bg2);
-      ctx.fillStyle = cardGradient;
-      ctx.fillRect(cardX, currentCardY, cardWidth, cardHeight);
-
+      // --- CARD BACKGROUND ---
+      const grad = ctx.createLinearGradient(0, 0, 0, cardHeight);
+      grad.addColorStop(0, colors.bg1);
+      grad.addColorStop(1, colors.bg2);
+      ctx.fillStyle = grad;
+      ctx.shadowBlur = isHovered ? 28 : 12;
+      ctx.shadowColor = isHovered ? colors.glow : "rgba(0,0,0,0.4)";
+      ctx.shadowOffsetY = isHovered ? 8 : 4;
+      ctx.fillRect(0, 0, cardWidth, cardHeight);
       ctx.shadowBlur = 0;
       ctx.shadowOffsetY = 0;
 
-      // Card border with glow
+      // --- CARD BORDER ---
       ctx.strokeStyle = colors.border;
       ctx.lineWidth = isHovered ? 3 : 2;
-      ctx.strokeRect(cardX, currentCardY, cardWidth, cardHeight);
-
-      // Inner glow effect
+      ctx.strokeRect(0, 0, cardWidth, cardHeight);
       if (isHovered) {
         ctx.strokeStyle = colors.glow;
         ctx.lineWidth = 1;
-        ctx.strokeRect(
-          cardX + 2,
-          currentCardY + 2,
-          cardWidth - 4,
-          cardHeight - 4
-        );
+        ctx.strokeRect(2, 2, cardWidth - 4, cardHeight - 4);
       }
 
-      // Top accent bar
-      const accentGradient = ctx.createLinearGradient(
-        cardX,
-        currentCardY,
-        cardX + cardWidth,
-        currentCardY
-      );
-      accentGradient.addColorStop(0, "rgba(0, 0, 0, 0)");
-      accentGradient.addColorStop(0.5, colors.border);
-      accentGradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-      ctx.fillStyle = accentGradient;
-      ctx.fillRect(cardX, currentCardY, cardWidth, 3);
-
-      // Rarity badge with modern style
-      const badgeY = currentCardY + 20;
-      const badgeHeight = 24;
-
-      // Badge background
-      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-      ctx.fillRect(cardX + 15, badgeY, cardWidth - 30, badgeHeight);
-
-      // Badge accent line
+      // --- BADGE ---
+      const badgeY = 16;
+      const badgeH = 24;
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(12, badgeY, cardWidth - 24, badgeH);
       ctx.fillStyle = colors.border;
-      ctx.fillRect(cardX + 15, badgeY, cardWidth - 30, 2);
-
-      // Badge text
+      ctx.fillRect(12, badgeY, cardWidth - 24, 2);
       ctx.fillStyle = colors.accent;
       ctx.font = "bold 11px 'Pokemon Classic', Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(
         upgrade.rarity.toUpperCase(),
-        cardX + cardWidth / 2,
-        badgeY + badgeHeight / 2 + 1
+        cardWidth / 2,
+        badgeY + badgeH / 2
       );
 
-      // Upgrade name with shadow
+      // --- NAME ---
       ctx.fillStyle = colors.accent;
       ctx.font = "bold 22px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+      ctx.shadowColor = "rgba(0,0,0,0.8)";
       ctx.shadowBlur = 4;
-      ctx.fillText(upgrade.name, cardX + cardWidth / 2, currentCardY + 60);
+      ctx.fillText(upgrade.name, cardWidth / 2, 60);
       ctx.shadowBlur = 0;
 
-      // Separator line
-      ctx.strokeStyle = colors.border;
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.3;
-      ctx.beginPath();
-      ctx.moveTo(cardX + 30, currentCardY + 95);
-      ctx.lineTo(cardX + cardWidth - 30, currentCardY + 95);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // Upgrade description (word wrap) with better spacing
+      // --- DESCRIPTION ---
       ctx.fillStyle = "#E5E7EB";
       ctx.font = "14px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const words = upgrade.description.split(" ");
-      let line = "";
-      let y = currentCardY + 110;
-      const maxWidth = cardWidth - 40;
-      const lines = [];
-
-      for (let word of words) {
-        const testLine = line + word + " ";
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && line !== "") {
+      let line = "",
+        y = 110,
+        lines = [];
+      for (let w of words) {
+        const test = line + w + " ";
+        if (ctx.measureText(test).width > cardWidth - 40 && line !== "") {
           lines.push(line.trim());
-          line = word + " ";
-        } else {
-          line = testLine;
-        }
+          line = w + " ";
+        } else line = test;
       }
       if (line) lines.push(line.trim());
+      lines.forEach((txt, idx) =>
+        ctx.fillText(txt, cardWidth / 2, y + idx * 20)
+      );
 
-      // Center the description lines
-      lines.forEach((textLine, index) => {
-        ctx.fillText(textLine, cardX + cardWidth / 2, y + index * 20);
-      });
-
-      // Bottom action indicator
-      const actionY = currentCardY + cardHeight - 30;
+      // --- CTA ---
+      const actionY = cardHeight - 30;
       if (isHovered) {
-        // Pulsing effect for hovered card
         ctx.fillStyle = colors.border;
-        ctx.fillRect(cardX + 30, actionY, cardWidth - 60, 2);
-
+        ctx.fillRect(30, actionY, cardWidth - 60, 2);
         ctx.fillStyle = colors.accent;
         ctx.font = "bold 13px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.shadowColor = colors.glow;
         ctx.shadowBlur = 8;
-        ctx.fillText("▸ CLICK TO SELECT ◂", cardX + cardWidth / 2, actionY + 8);
+        ctx.fillText("▸ CLICK TO SELECT ◂", cardWidth / 2, actionY + 8);
         ctx.shadowBlur = 0;
       } else {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.fillStyle = "rgba(255,255,255,0.4)";
         ctx.font = "11px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.fillText("Click to select", cardX + cardWidth / 2, actionY + 10);
+        ctx.fillText("Click to select", cardWidth / 2, actionY + 10);
       }
-    }
 
-    // Store card positions for click detection
-    this.upgradeCardBounds = [];
-    for (let i = 0; i < this.levelUpUpgrades.length; i++) {
-      const cardX = startX + i * (cardWidth + cardGap);
+      ctx.restore();
       this.upgradeCardBounds.push({
         x: cardX,
-        y: cardY,
+        y: baseY,
         width: cardWidth,
         height: cardHeight,
       });
-    }
+    });
   }
 
   /**
@@ -2269,64 +2333,96 @@ export class GameEngine {
     };
 
     // Store for click detection
-    this.pauseButtons = { restart: restartBtn, menu: menuBtn, continue: continueBtn };
+    this.pauseButtons = {
+      restart: restartBtn,
+      menu: menuBtn,
+      continue: continueBtn,
+    };
 
     // Draw Continue button
-    if (this.hoveredPauseButton === 'continue') {
-      this.ctx.fillStyle = '#FFD700';
-      this.ctx.strokeStyle = '#FFD700';
+    if (this.hoveredPauseButton === "continue") {
+      this.ctx.fillStyle = "#FFD700";
+      this.ctx.strokeStyle = "#FFD700";
       this.ctx.lineWidth = 4;
     } else {
-      this.ctx.fillStyle = '#222';
-      this.ctx.strokeStyle = '#fff';
+      this.ctx.fillStyle = "#222";
+      this.ctx.strokeStyle = "#fff";
       this.ctx.lineWidth = 2;
     }
-    this.ctx.fillRect(continueBtn.x, continueBtn.y, continueBtn.width, continueBtn.height);
-    this.ctx.strokeRect(continueBtn.x, continueBtn.y, continueBtn.width, continueBtn.height);
-    this.ctx.fillStyle = this.hoveredPauseButton === 'continue' ? '#222' : '#fff';
-    this.ctx.font = this.hoveredPauseButton === 'continue' ? 'bold 24px Arial' : 'bold 24px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('Resume', centerX, continueBtn.y + btnHeight / 2);
+    this.ctx.fillRect(
+      continueBtn.x,
+      continueBtn.y,
+      continueBtn.width,
+      continueBtn.height
+    );
+    this.ctx.strokeRect(
+      continueBtn.x,
+      continueBtn.y,
+      continueBtn.width,
+      continueBtn.height
+    );
+    this.ctx.fillStyle =
+      this.hoveredPauseButton === "continue" ? "#222" : "#fff";
+    this.ctx.font =
+      this.hoveredPauseButton === "continue"
+        ? "bold 24px Arial"
+        : "bold 24px Arial";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText("Resume", centerX, continueBtn.y + btnHeight / 2);
 
     // Draw Restart button
-    if (this.hoveredPauseButton === 'restart') {
-      this.ctx.fillStyle = '#FFD700';
-      this.ctx.strokeStyle = '#FFD700';
+    if (this.hoveredPauseButton === "restart") {
+      this.ctx.fillStyle = "#FFD700";
+      this.ctx.strokeStyle = "#FFD700";
       this.ctx.lineWidth = 4;
     } else {
-      this.ctx.fillStyle = '#222';
-      this.ctx.strokeStyle = '#fff';
+      this.ctx.fillStyle = "#222";
+      this.ctx.strokeStyle = "#fff";
       this.ctx.lineWidth = 2;
     }
-    this.ctx.fillRect(restartBtn.x, restartBtn.y, restartBtn.width, restartBtn.height);
-    this.ctx.strokeRect(restartBtn.x, restartBtn.y, restartBtn.width, restartBtn.height);
-    this.ctx.fillStyle = this.hoveredPauseButton === 'restart' ? '#222' : '#fff';
-    this.ctx.font = this.hoveredPauseButton === 'restart' ? 'bold 24px Arial' : 'bold 24px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('Restart', centerX, restartBtn.y + btnHeight / 2);
+    this.ctx.fillRect(
+      restartBtn.x,
+      restartBtn.y,
+      restartBtn.width,
+      restartBtn.height
+    );
+    this.ctx.strokeRect(
+      restartBtn.x,
+      restartBtn.y,
+      restartBtn.width,
+      restartBtn.height
+    );
+    this.ctx.fillStyle =
+      this.hoveredPauseButton === "restart" ? "#222" : "#fff";
+    this.ctx.font =
+      this.hoveredPauseButton === "restart"
+        ? "bold 24px Arial"
+        : "bold 24px Arial";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText("Restart", centerX, restartBtn.y + btnHeight / 2);
 
     // Draw Back to Menu button
-    if (this.hoveredPauseButton === 'menu') {
-      this.ctx.fillStyle = '#FFD700';
-      this.ctx.strokeStyle = '#FFD700';
+    if (this.hoveredPauseButton === "menu") {
+      this.ctx.fillStyle = "#FFD700";
+      this.ctx.strokeStyle = "#FFD700";
       this.ctx.lineWidth = 4;
     } else {
-      this.ctx.fillStyle = '#222';
-      this.ctx.strokeStyle = '#fff';
+      this.ctx.fillStyle = "#222";
+      this.ctx.strokeStyle = "#fff";
       this.ctx.lineWidth = 2;
     }
     this.ctx.fillRect(menuBtn.x, menuBtn.y, menuBtn.width, menuBtn.height);
     this.ctx.strokeRect(menuBtn.x, menuBtn.y, menuBtn.width, menuBtn.height);
-    this.ctx.fillStyle = this.hoveredPauseButton === 'menu' ? '#222' : '#fff';
-    this.ctx.font = this.hoveredPauseButton === 'menu' ? 'bold 24px Arial' : 'bold 24px Arial';
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    this.ctx.fillText('Back to Menu', centerX, menuBtn.y + btnHeight / 2);
-
-
-
+    this.ctx.fillStyle = this.hoveredPauseButton === "menu" ? "#222" : "#fff";
+    this.ctx.font =
+      this.hoveredPauseButton === "menu"
+        ? "bold 24px Arial"
+        : "bold 24px Arial";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText("Back to Menu", centerX, menuBtn.y + btnHeight / 2);
   }
 
   /**

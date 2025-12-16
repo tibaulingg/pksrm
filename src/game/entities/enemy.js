@@ -205,9 +205,13 @@ export class Enemy {
       effect.timer += dt;
 
       // Appliquer les dégâts toutes les X secondes
-      if (effect.timer >= effect.interval) {
+      if (effect.timer >= effect.interval && effect.damage > 0) {
         effect.timer -= effect.interval;
         this.takeDamage(effect.damage);
+      }
+
+      if (effect.slow) { //0.25 for water effect
+        this.speed = getEnemyStats(this.type).speed * (1 - effect.slow);
       }
 
       // Supprimer l’effet s’il est terminé
@@ -293,15 +297,32 @@ export class Enemy {
     if (projectile && projectile.projectileType === "fire") {
       const existingEffect = this.effects.find((e) => e.type === "fire");
       if (existingEffect) {
-        existingEffect.duration = 5;
+        existingEffect.duration = 3;
         existingEffect.damage += 1; // Stack damage
       } else {
         this.effects.push({
           type: "fire",
           damage: 1, // Damage per tick
-          duration: 5, // Total duration in seconds
+          duration: 3, // Total duration in seconds
           interval: 1, // Damage every second
           timer: 0, // Timer to track intervals
+        });
+      }
+    }
+
+    if (projectile && projectile.projectileType === "water") {
+      const existingEffect = this.effects.find((e) => e.type === "water");
+      if (existingEffect) {
+        existingEffect.duration = 3;
+        //increase slow effect stacking up to 60%
+        existingEffect.slow = Math.min(existingEffect.slow + 0.1, 0.6);
+      } else {
+        this.effects.push({
+          type: "water",
+          damage: 0, // Damage per tick
+          duration: 3, // Total duration in seconds
+          timer: 0, // Timer to track intervals
+          slow: 0.25, // Reduce speed by 25%
         });
       }
     }
@@ -538,6 +559,9 @@ export class Enemy {
         switch (effect.type) {
           case "fire":
             emoji = "🔥";
+            break;
+          case "water":
+            emoji = "💧";
             break;
           default:
             emoji = "";

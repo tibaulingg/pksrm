@@ -37,11 +37,11 @@ export const spriteConfig = {
     hurtAnim : {
       hurtSpriteSheet: hurtPiplupSpriteSheet,
       spriteWidth: 80,
-      spriteHeight: 256,
+      spriteHeight: 448,
       framesPerRow: 2,
       framesPerColumn: 8,
       frameWidth: 40,
-      frameHeight: 32,
+      frameHeight: 56,
       animationFrames: {
         hurt: [0,1], // Left to right frames
       },
