@@ -20,6 +20,7 @@ import { random } from "../utils/math.js";
 // Import tileset
 import tilesetImage from "../sprites/tileset.png";
 import tilesetToundra from "../sprites/tileset_toundra.png";
+import tilesetVolcano from "../sprites/tileset_volcano.png";
 
 // Import character profile images
 import piplupProfile from "../sprites/piplup/profile.png";
@@ -503,6 +504,9 @@ export class GameEngine {
     console.log(this.selectedLevel)
     if (this.selectedLevel === 'glacier' || this.selectedLevel === 2) {
       imgSrc = tilesetToundra;
+    }
+    if (this.selectedLevel === 'volcano' || this.selectedLevel === 3) {
+      imgSrc = tilesetVolcano;
     }
     const img = new Image();
     img.onload = () => {
