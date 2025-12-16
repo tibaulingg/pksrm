@@ -14,6 +14,8 @@ import hurtquagSireSpriteSheet from "../../sprites/quagsire/hurt.png";
 import hurtPiplupSpriteSheet from "../../sprites/piplup/hurt.png";
 import hurtTurwig from "../../sprites/turtwig/hurt.png";
 import hurtChimchar from "../../sprites/chimchar/hurt.png";
+import moltresspriteSheet from "../../sprites/moltres/sprite.png";
+import magmarSpriteSheet from "../../sprites/magmar/sprite.png";
 
 export const spriteConfig = {
   piplup: {
@@ -173,6 +175,40 @@ export const spriteConfig = {
       animationSpeed: 0.2, // seconds per frame
       scale: 1,
     }
+  },
+  moltres: {
+    spriteSheet: moltresspriteSheet,
+    profileImage: "../../sprites/moltres/profile.png",
+    spriteWidth: 320,
+    spriteHeight: 768,
+    framesPerRow: 4,
+    framesPerColumn: 8,
+    frameWidth: 80, 
+    frameHeight: 96, 
+    animationFrames: {
+      idle: [0],
+      walk: [0, 1, 2, 3], // Left to right frames
+    },
+    animationSpeed: 0.15, // seconds per frame
+    scale: 1,
+    dominantColor: "#ec5a31ff", // Dominant color from moltress sprite for particles
+  },
+  magmar : {
+    spriteSheet: magmarSpriteSheet,
+    profileImage: "../../sprites/magmar/profile.png",
+    spriteWidth: 128,
+    spriteHeight: 384,
+    framesPerRow: 4,
+    framesPerColumn: 8,
+    frameWidth: 32, 
+    frameHeight: 48,
+    animationFrames: {
+      idle: [0],
+      walk: [0, 1, 2, 3], // Left to right frames
+    },
+    animationSpeed: 0.15, // seconds per frame
+    scale: 1,
+    dominantColor: "#ff5722ff", // Dominant color from Magmar sprite for particles
   },
 };
 

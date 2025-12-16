@@ -83,7 +83,7 @@ export class Enemy {
       const totalScale = spritesheetConfig.scale * enemySpriteConfig.scale;
 
       if (isBoss) {
-        this.enemyScale  *= 2;
+        this.enemyScale  *= 1.5;
       }
     
       const effectiveWidth = spritesheetConfig.frameWidth * totalScale;
@@ -525,7 +525,6 @@ export function createEnemy(x, y, type = "ratata", options = {}) {
   const enemy = new Enemy(x, y, type, options.isBoss);
   if (options.isBoss) {
     enemy.isBoss = true;
-    enemy.enemyScale = (enemy.enemyScale || 1) * 5;
     if (options.hp) {
       enemy.health = options.hp;
       enemy.maxHealth = options.hp;

@@ -30,7 +30,7 @@ export const LEVEL_CONFIG = {
     },
     boss: {
       quagsire : {
-        spawnTimer: 20, // in seconds
+        spawnTimer: 60, // in seconds
         hp: 2000,
         attack: 100,
         defense: 100,
@@ -57,6 +57,14 @@ export const LEVEL_CONFIG = {
         spawnRate: 0.05,
       },
     },
+        boss: {
+      quagsire : {
+        spawnTimer: 60, // in seconds
+        hp: 2000,
+        attack: 100,
+        defense: 100,
+      }
+    }
   },
 
     volcano: {
@@ -67,12 +75,25 @@ export const LEVEL_CONFIG = {
     spawnMultiplier: 4,
     backgroundColor: "#660000",
     enemies: {
+      magmar : {
+        enabled: true,
+        weight: 90,
+        spawnRate: 0.4,
+      },
       chimchar: {
         enabled: true,
-        weight: 80,
+        weight: 10,
         spawnRate: 0.25,
       },
     },
+    boss: {
+      moltres : {
+        spawnTimer: 60, // in seconds
+        hp: 2000,
+        attack: 100,
+        defense: 100,
+      }
+    }
   },
 };
 
