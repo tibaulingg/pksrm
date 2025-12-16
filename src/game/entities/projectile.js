@@ -13,22 +13,17 @@ export class Projectile {
     damage = 10,
     owner = null,
     color = "#FFC107",
-    maxDistance = null, // distance maximale parcourue
-    projectileType = null // type du projectile (ex: water)
+    maxDistance = null,
+    projectileType = null
   ) {
-    // Position
     this.x = x;
     this.y = y;
     this.startX = x;
     this.startY = y;
 
-    // Movement
-    // cos and sin already return normalized values, just use them directly
-    // Addition de la vitesse du joueur si le tireur est le joueur
     let vx = Math.cos(angle) * speed;
     let vy = Math.sin(angle) * speed;
     if (owner && owner instanceof Object && owner.velocityX !== undefined && owner.velocityY !== undefined) {
-      //Seulement si on va vers l'avant
       if ((vx > 0 && owner.velocityX > 0) || (vx < 0 && owner.velocityX < 0)) {
         vx += owner.velocityX;
       }
@@ -36,7 +31,6 @@ export class Projectile {
       if ((vy > 0 && owner.velocityY > 0) || (vy < 0 && owner.velocityY < 0)) {
         vy += owner.velocityY;
       }
-      //Augmenter un peu la portée max en fonction de la vitesse du tireur
       if (maxDistance !== null) {
         maxDistance += Math.abs(owner.velocityX / 2) * (this.lifetime || 2.0);
       }
@@ -45,33 +39,33 @@ export class Projectile {
     this.velocityY = vy;
     this.angle = angle;
 
-    // Appearance
     this.radius = 6;
     this.color = color;
-    this.trailColor = this.adjustBrightness(color, 1.5); // Lighter version for trail
-    this.hasAura = false; // Whether to draw an aura
-    this.auraColor = color; // Color of the aura
+    this.trailColor = this.adjustBrightness(color, 1.5);
+    this.hasAura = false;
+    this.auraColor = color;
 
-    // Stats
     this.damage = damage;
     this.speed = speed;
-    this.lifetime = 2.0; // seconds before despawn
+    this.lifetime = 2.0;
     this.age = 0;
 
-    // State
     this.active = true;
-    this.piercing = 0; // How many enemies it can pierce (0 = none)
+    this.piercing = 0;
     this.hitCount = 0;
-    this.owner = owner; // Who fired this projectile (player or enemy)
-    this.maxDistance = maxDistance; // portée maximale (range)
+    this.owner = owner;
+    this.maxDistance = maxDistance;
+    this.aoeRadius = 0;
 
-    // Visual effects
-    this.trail = []; // Trail positions for visual effect
+    this.baseDamage = damage;
+    this.baseSpeed = speed;
+    this.baseRadius = this.radius;
+    this.hitTargets = new Set();
+
+    this.trail = [];
     this.maxTrailLength = 5;
 
-    // Image du projectile si type précisé
     this.projectileType = projectileType;
-    // imageInfo = { image, angleOffset, scale }
     this.imageInfo = projectileType ? getProjectileImage(projectileType) : null;
   }
 
@@ -169,11 +163,21 @@ export class Projectile {
   onHit() {
     this.hitCount++;
 
-    // Deactivate if not piercing or hit limit reached
     if (this.piercing === 0 || this.hitCount > this.piercing) {
       this.active = false;
       return true;
     }
+
+    const damageDecay = 0.8;
+    const speedDecay = 0.9;
+    const sizeDecay = 0.9;
+
+    this.damage *= damageDecay;
+    this.speed *= speedDecay;
+    this.radius *= sizeDecay;
+
+    this.velocityX = Math.cos(this.angle) * this.speed;
+    this.velocityY = Math.sin(this.angle) * this.speed;
 
     return false;
   }

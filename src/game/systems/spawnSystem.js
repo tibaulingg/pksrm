@@ -16,7 +16,7 @@ export class SpawnSystem {
     this.songManager = songManager; // Reference to SongManager for boss music
     
     // Spawn configuration
-    this.spawnInterval = 2.0; // seconds between spawns
+    this.spawnInterval = 0.1; // seconds between spawns
     this.spawnTimer = 0;
     this.spawnMargin = 80; // pixels outside screen
     
@@ -287,7 +287,7 @@ export class SpawnSystem {
     this.spawnTimer = 0;
     this.difficultyTimer = 0;
     this.enemiesPerSpawn = this.baseEnemiesPerSpawn;
-    this.spawnInterval = 2.0;
+    this.spawnInterval = 0.1;
     this.totalSpawned = 0;
     this.waveNumber = 1;
     

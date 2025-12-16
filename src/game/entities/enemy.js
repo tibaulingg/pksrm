@@ -254,7 +254,7 @@ export class Enemy {
    * @param {number} amount - Damage amount
    * @returns {boolean} True if enemy died
    */
-  takeDamage(amount) {
+  takeDamage(amount, projectile = null) {
 
     if (this.dead) return false;
 
@@ -265,6 +265,14 @@ export class Enemy {
       this.health = 0;
       this.dead = true;
       return true; // Died
+    }
+
+    //Le projectile a une chance sur 1 d'appliquer son effet selon son type
+    if (projectile && projectile.projectileType) {
+      const projectileType = projectile.projectileType;
+      if (projectileType === 'fire') {
+        this.effects.push('fire');
+      }
     }
 
     return false; // Still alive

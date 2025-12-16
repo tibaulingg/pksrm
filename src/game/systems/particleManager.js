@@ -164,6 +164,46 @@ export class ParticleManager {
     }
   }
 
+  spawnExplosion(x, y, radius = 60, color = '#FFA500') {
+    const count = Math.max(16, Math.floor(radius / 3));
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 220 + Math.random() * 260;
+      const particle = new Particle(x, y, {
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        gravity: 140,
+        color: color,
+        size: 6 + Math.random() * 5,
+        lifetime: 0.65 + Math.random() * 0.35,
+      });
+      this.particles.push(particle);
+    }
+    const ringCount = 10;
+    for (let i = 0; i < ringCount; i++) {
+      const angle = (Math.PI * 2 * i) / ringCount;
+      const speed = radius * 8;
+      const particle = new Particle(x, y, {
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        gravity: 0,
+        color: color,
+        size: 9,
+        lifetime: 0.22,
+      });
+      this.particles.push(particle);
+    }
+    const flash = new Particle(x, y, {
+      vx: 0,
+      vy: 0,
+      gravity: 0,
+      color: color,
+      size: radius * 0.9,
+      lifetime: 0.15,
+    });
+    this.particles.push(flash);
+  }
+
   /**
    * Update all particles
    */

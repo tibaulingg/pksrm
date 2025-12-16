@@ -34,6 +34,8 @@ function createStarter(name, spriteName, scale = 2, dominantColor, projectileCol
 			projectileColor,
 			projectileSize: overrides.projectileSize || 15,
 			projectileSpeed: overrides.projectileSpeed || 400,
+			projectilePierce: overrides.projectilePierce || 0,
+      aoeSize: overrides.aoeSize || 0,
 		},
 		enemy: createEnemy("melee", strength, overrides.enemy || {}),
     projectileType: overrides.projectileType || null,
@@ -41,9 +43,9 @@ function createStarter(name, spriteName, scale = 2, dominantColor, projectileCol
 }
 
 export const POKEMON_CONFIG = {
-	piplup: createStarter("Piplup", "piplup", 2, "#4FC3F7", "#0288D1", "medium", { projectileType: 'water', stats: { attackSpeed: 1.1 } }),
-	turtwig: createStarter("Turtwig", "turtwig", 2, "#4E944F", "#2E7D32", "strong", { projectileType: 'grass', stats: { attackSpeed: 1.1 } }),
-	chimchar: createStarter("Chimchar", "chimchar", 2, "#F57C00", "#E64A19", "weak", { projectileType: 'fire', stats: { attackSpeed: 1.1 } }),
+	piplup: createStarter("Piplup", "piplup", 2, "#4FC3F7", "#0288D1", "medium", { projectileType: 'water', stats: { attackSpeed: 1.1, projectilePierce: 1 } }),
+	turtwig: createStarter("Turtwig", "turtwig", 2, "#4E944F", "#2E7D32", "strong", { projectileType: 'grass', stats: { attackSpeed: 1.1, projectilePierce: 0 } }),
+	chimchar: createStarter("Chimchar", "chimchar", 2, "#F57C00", "#E64A19", "weak", { projectileType: 'fire', stats: { attackSpeed: 1.1 }, aoeSize: 50 }),
 	quagsire: createStarter("Quagsire", "quagsire", 2, "#5a8ecaff", "#3976d1ff", "strong", { projectileType: 'water', stats: { attackSpeed: 2 } }),
 	ratata: {
 		name: "Ratata",

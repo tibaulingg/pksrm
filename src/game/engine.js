@@ -13,9 +13,9 @@ import { InventorySystem } from "./systems/inventorySystem.js";
 import { MapSystem } from "./systems/mapSystem.js";
 import { selectRandomUpgrades, applyUpgrade } from "./systems/upgradeSystem.js";
 import { calculateXpForLevel, getEffectiveXpValue } from "./config/xpConfig.js";
-import { PLAYER_CONFIG } from "./entities/playerConfig.js";
+import { PLAYER_CONFIG } from "./config/playerConfig.js";
 import { LEVEL_CONFIG, getAllLevels, getLevel } from "./config/levelConfig.js";
-import { random } from "../utils/math.js";
+import { random, clamp } from "../utils/math.js";
 
 // Import tileset
 import tilesetImage from "../sprites/tileset.png";
@@ -137,7 +137,7 @@ export class GameEngine {
     this.particleManager = new ParticleManager();
     this.minimap = new Minimap(canvas.width, canvas.height);
     this.inventorySystem = new InventorySystem(canvas.width, canvas.height);
-    this.mapSystem = new MapSystem(16, 16, 32); // 64x64 tiles of 32 units each
+    this.mapSystem = new MapSystem(12, 12, 32); // 64x64 tiles of 32 units each
 
     // Stats
     this.score = 0;
@@ -895,15 +895,12 @@ export class GameEngine {
         const projectile = collisionResults.projectilesHit[i];
         const hit = collisionResults.projectileHits[i];
 
-        // Get critical hit information from the projectile
         const isCrit = projectile.lastHitCrit || false;
         const critMultiplier = projectile.lastHitCritMultiplier || 1.0;
         
-        // Calculate final damage display (same as what was applied)
         let baseDamage = projectile.damage + this.player.damage;
         let finalDamage = baseDamage * critMultiplier;
         
-        // Create floating damage number at hit location
         const damageColor = isCrit ? "#FFD700" : "#FFFFFF"; // Yellow for crits, white for normal
         const damageNum = createDamageNumber(
           hit.x, 
@@ -914,6 +911,13 @@ export class GameEngine {
           this.player.critDamage
         );
         this.damageNumbers.push(damageNum);
+        if (projectile.aoeRadius && projectile.aoeRadius > 0) {
+          const color = hit.enemyColor || this.player.projectileColor || "#FFA500";
+          this.particleManager.spawnExplosion(hit.x, hit.y, projectile.aoeRadius, color);
+        } else {
+          const color = hit.enemyColor || this.player.projectileColor || "#FFA500";
+          this.particleManager.spawnHitImpact(hit.x, hit.y, color, 6);
+        }
       }
     }
 
@@ -1177,11 +1181,17 @@ export class GameEngine {
       this.player.damage,
       this.player,
       this.player.projectileColor,
-      this.player.range, // portée max
+      this.player.range,
       projectileType
     );
     if (projectile && this.player.projectileSize) {
       projectile.radius = this.player.projectileSize;
+    }
+    const pierceValue = clamp(this.player.projectilePierce || 0, 0, 10);
+    projectile.piercing = pierceValue;
+    if (this.player.aoeSize && this.player.aoeSize > 0) {
+      projectile.aoeRadius = this.player.aoeSize;
+      projectile.piercing = 0;
     }
 
     this.projectiles.push(projectile);
@@ -1201,10 +1211,16 @@ export class GameEngine {
       this.player.damage,
       this.player,
       this.player.projectileColor,
-      this.player.range // portée max
+      this.player.range
     );
     if (projectile && this.player.projectileSize) {
       projectile.radius = this.player.projectileSize;
+    }
+    const pierceValue = clamp(this.player.projectilePierce || 0, 0, 10);
+    projectile.piercing = pierceValue;
+    if (this.player.aoeSize && this.player.aoeSize > 0) {
+      projectile.aoeRadius = this.player.aoeSize;
+      projectile.piercing = 0;
     }
 
     this.projectiles.push(projectile);

@@ -1,5 +1,5 @@
 import { lerp, clamp, normalize } from "../../utils/math.js";
-import { getPlayerStats, getPlayerConfig } from "./playerConfig.js";
+import { getPlayerStats, getPlayerConfig } from "../config/playerConfig.js";
 import { spriteConfig, getDirectionRow } from "../sprites/spriteConfig.js";
 
 // Import player sprites
@@ -67,6 +67,8 @@ export class Player {
     this.range = playerStats.range || 120;
     this.projectileSize = playerStats.projectileSize || 10;
     this.projectileSpeed = playerStats.projectileSpeed || 400;
+    this.projectilePierce = playerStats.projectilePierce || 0;
+    this.aoeSize = playerStats.aoeSize || 0;
     this.name = playerConfig.name || "Player";
 
     // Appearance

@@ -10,7 +10,7 @@
 import {
   POKEMON_CONFIG,
   getPokemonPlayerConfig,
-} from "../config/pokemonConfig.js";
+} from "./pokemonConfig.js";
 
 const BASE_VALUES = {
   health: 50,
@@ -41,6 +41,7 @@ Object.entries(POKEMON_CONFIG).forEach(([key, pokemonDef]) => {
       projectileSize: pokemonDef.player.projectileSize,
       projectileSpeed: pokemonDef.player.projectileSpeed,
       projectilePierce: pokemonDef.player.projectilePierce || 0,
+      aoeSize: pokemonDef.player.aoeSize || 0,
     };
   }
 });
@@ -58,6 +59,9 @@ export function getPlayerStats(type) {
   }
 
   const stats = config.stats;
+  const basePierce = config.projectilePierce || stats.projectilePierce || 0;
+  const aoeSize = config.aoeSize || 0;
+  const finalPierce = aoeSize > 0 ? 0 : basePierce;
   return {
     maxHealth: Math.round(BASE_VALUES.health * stats.health),
     speed: BASE_VALUES.speed * stats.speed,
@@ -71,7 +75,8 @@ export function getPlayerStats(type) {
     projectileSize: config.projectileSize || 10,
     projectileSpeed: config.projectileSpeed || 500,
     range: config.range || 120,
-    projectilePierce: config.projectilePierce || 0,
+    projectilePierce: finalPierce,
+    aoeSize: aoeSize,
   };
 }
 

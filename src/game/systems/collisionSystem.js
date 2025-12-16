@@ -80,32 +80,48 @@ export class CollisionSystem {
       for (let j = 0; j < enemies.length; j++) {
         const enemy = enemies[j];
         if (enemy.dead) continue;
-        
-        // Skip collision if the enemy fired this projectile
         if (projectile.owner === enemy) continue;
 
-        if (this.checkProjectileEnemyCollision(projectile, enemy, player)) {
-          results.projectilesHit.push(projectile);
-          results.enemiesHit.push(enemy);
-          
-          // Track projectile hit location for particles
-          results.projectileHits.push({
-            x: projectile.x,
-            y: projectile.y,
-            enemyColor: enemy.color,
-          });
-
-          // Check if enemy died
-          if (enemy.dead) {
-            results.enemiesKilled.push(enemy);
-            this.enemiesKilled++;
-            if(enemy.isBoss) {
-              this.bossDefeated = true;
+        if (projectile.aoeRadius && projectile.aoeRadius > 0) {
+          const collided =
+            circleCollision(
+              projectile.x,
+              projectile.y,
+              projectile.radius,
+              enemy.x,
+              enemy.y,
+              enemy.radius
+            );
+          if (collided) {
+            const anyHit = this.applyAOEDamage(projectile, enemies, player, results);
+            if (anyHit) {
+              results.projectilesHit.push(projectile);
+              results.projectileHits.push({
+                x: projectile.x,
+                y: projectile.y,
+                enemyColor: enemy.color,
+              });
             }
+            break;
           }
-
-          // Break if projectile is no longer active
-          if (!projectile.active) break;
+        } else {
+          if (this.checkProjectileEnemyCollision(projectile, enemy, player)) {
+            results.projectilesHit.push(projectile);
+            results.enemiesHit.push(enemy);
+            results.projectileHits.push({
+              x: projectile.x,
+              y: projectile.y,
+              enemyColor: enemy.color,
+            });
+            if (enemy.dead) {
+              results.enemiesKilled.push(enemy);
+              this.enemiesKilled++;
+              if (enemy.isBoss) {
+                this.bossDefeated = true;
+              }
+            }
+            if (!projectile.active) break;
+          }
         }
       }
     }
@@ -169,6 +185,9 @@ export class CollisionSystem {
     );
 
     if (collision) {
+      if (projectile.hitTargets && projectile.hitTargets.has(enemy)) {
+        return false;
+      }
       // Calculate total damage with critical hit chance
       let baseDamage = projectile.damage + (player ? player.damage : 0);
       let isCrit = false;
@@ -182,7 +201,7 @@ export class CollisionSystem {
       const totalDamage = baseDamage * critDamage;
       
       // Apply damage to enemy
-      const died = enemy.takeDamage(totalDamage);
+      const died = enemy.takeDamage(totalDamage, projectile);
 
       //PLay hit sound
       this.soundManager.playHitSound();
@@ -194,6 +213,9 @@ export class CollisionSystem {
       
       // Mark projectile as hit
       projectile.onHit();
+      if (projectile.hitTargets) {
+        projectile.hitTargets.add(enemy);
+      }
       
       this.projectileHits++;
       
@@ -205,6 +227,47 @@ export class CollisionSystem {
     }
 
     return false;
+  }
+
+  applyAOEDamage(projectile, enemies, player, results) {
+    let anyHit = false;
+    let isCrit = false;
+    let critDamage = 1.0;
+    if (player) {
+      isCrit = Math.random() < (player.critChance / 100);
+      critDamage = isCrit ? player.critDamage : 1.0;
+    }
+    for (let i = 0; i < enemies.length; i++) {
+      const enemy = enemies[i];
+      if (enemy.dead) continue;
+      if (projectile.owner === enemy) continue;
+      const dx = enemy.x - projectile.x;
+      const dy = enemy.y - projectile.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > projectile.aoeRadius + enemy.radius) continue;
+      let baseDamage = projectile.damage + (player ? player.damage : 0);
+      const totalDamage = baseDamage * critDamage;
+      const died = enemy.takeDamage(totalDamage, projectile);
+      this.soundManager.playHitSound();
+      enemy.applyKnockback(dx, dy, this.projectileKnockback);
+      if (projectile.hitTargets) {
+        projectile.hitTargets.add(enemy);
+      }
+      this.projectileHits++;
+      projectile.lastHitCrit = isCrit;
+      projectile.lastHitCritMultiplier = critDamage;
+      results.enemiesHit.push(enemy);
+      if (died) {
+        results.enemiesKilled.push(enemy);
+        this.enemiesKilled++;
+        if (enemy.isBoss) {
+          this.bossDefeated = true;
+        }
+      }
+      anyHit = true;
+    }
+    projectile.active = false;
+    return anyHit;
   }
 
   /**
@@ -225,7 +288,7 @@ export class CollisionSystem {
 
     if (collision) {
       // Apply damage to player
-      const damaged = player.takeDamage(projectile.damage);
+      const damaged = player.takeDamage(projectile.damage, projectile);
       
       if (damaged) {
         this.playerHits++;
