@@ -87,8 +87,8 @@ export class CollisionSystem {
         if (this.checkProjectilePlayerCollision(projectile, player)) {
           results.enemyProjectilesHit.push(projectile);
           results.playerHit = true;
-          continue;
         }
+        continue;
       }
 
       // Projectile vs enemies
