@@ -273,15 +273,49 @@ export class Player {
     this.knockbackX *= 0.9;
     this.knockbackY *= 0.9;
 
-    // Update position
-    this.x += (this.velocityX + this.knockbackX) * dt;
-    this.y += (this.velocityY + this.knockbackY) * dt;
-
-    // Clamp to map boundaries if map system is provided
     if (mapSystem) {
-      const clamped = mapSystem.clampToBounds(this.x, this.y, this.radius);
-      this.x = clamped.x;
-      this.y = clamped.y;
+      const moveX = (this.velocityX + this.knockbackX) * dt;
+      const moveY = (this.velocityY + this.knockbackY) * dt;
+      
+      let newX = this.x + moveX;
+      let newY = this.y + moveY;
+      
+      if (mapSystem.isPositionBlocked(newX, this.y, this.radius)) {
+        newX = this.x;
+        this.velocityX = 0;
+        this.knockbackX = 0;
+      }
+      
+      if (mapSystem.isPositionBlocked(this.x, newY, this.radius)) {
+        newY = this.y;
+        this.velocityY = 0;
+        this.knockbackY = 0;
+      }
+      
+      if (mapSystem.isPositionBlocked(newX, newY, this.radius)) {
+        const clamped = mapSystem.clampToBounds(newX, newY, this.radius);
+        newX = clamped.x;
+        newY = clamped.y;
+        
+        const dx = clamped.x - this.x;
+        const dy = clamped.y - this.y;
+        
+        if (Math.abs(dx) < Math.abs(moveX) * 0.5) {
+          this.velocityX = 0;
+          this.knockbackX = 0;
+        }
+        if (Math.abs(dy) < Math.abs(moveY) * 0.5) {
+          this.velocityY = 0;
+          this.knockbackY = 0;
+        }
+      }
+      
+      const finalClamped = mapSystem.clampToBounds(newX, newY, this.radius);
+      this.x = finalClamped.x;
+      this.y = finalClamped.y;
+    } else {
+      this.x += (this.velocityX + this.knockbackX) * dt;
+      this.y += (this.velocityY + this.knockbackY) * dt;
     }
 
     // Update aim position

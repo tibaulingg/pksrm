@@ -32,6 +32,10 @@ export class Enemy {
     // Movement
     this.velocityX = 0;
     this.velocityY = 0;
+    this.stuckTimer = 0;
+    this.lastPositionX = x;
+    this.lastPositionY = y;
+    this.avoidanceDirection = 0;
 
     // State
     this.active = true;
@@ -145,9 +149,10 @@ export class Enemy {
    * Update enemy state
    * @param {number} dt - Delta time in seconds
    * @param {Object} player - Player reference
+   * @param {Object} mapSystem - Map system for collision detection
    * @returns {Object|null} Projectile data to fire, or null if none
    */
-  update(dt, player) {
+  update(dt, player, mapSystem = null) {
     if (this.dead) return null;
 
     // Animation de la barre de vie (lerp vers la vraie valeur)
@@ -223,7 +228,82 @@ export class Enemy {
     // Move towards player (but not if shooter is in range or colliding)
     const contactDistance = (this.radius || 0) + (player.radius || 0);
     if (dist > contactDistance && !isInRange) {
-      const normalized = normalize(dx, dy);
+      let targetDirX = dx / dist;
+      let targetDirY = dy / dist;
+      
+      if (mapSystem) {
+        const lookAheadDistance = this.radius + mapSystem.tileSize * 0.5;
+        const lookAheadX = this.x + targetDirX * lookAheadDistance;
+        const lookAheadY = this.y + targetDirY * lookAheadDistance;
+        
+        if (mapSystem.isPositionBlocked(lookAheadX, lookAheadY, this.radius)) {
+          const perpAngle = Math.atan2(targetDirY, targetDirX) + Math.PI / 2;
+          const perpX = Math.cos(perpAngle);
+          const perpY = Math.sin(perpAngle);
+          
+          const testLeftX = this.x + perpX * lookAheadDistance;
+          const testLeftY = this.y + perpY * lookAheadDistance;
+          const testRightX = this.x - perpX * lookAheadDistance;
+          const testRightY = this.y - perpY * lookAheadDistance;
+          
+          const leftBlocked = mapSystem.isPositionBlocked(testLeftX, testLeftY, this.radius);
+          const rightBlocked = mapSystem.isPositionBlocked(testRightX, testRightY, this.radius);
+          
+          if (!leftBlocked && !rightBlocked) {
+            const distToPlayerLeft = Math.sqrt(
+              Math.pow(player.x - testLeftX, 2) + Math.pow(player.y - testLeftY, 2)
+            );
+            const distToPlayerRight = Math.sqrt(
+              Math.pow(player.x - testRightX, 2) + Math.pow(player.y - testRightY, 2)
+            );
+            
+            if (distToPlayerLeft < distToPlayerRight) {
+              targetDirX = perpX;
+              targetDirY = perpY;
+            } else {
+              targetDirX = -perpX;
+              targetDirY = -perpY;
+            }
+          } else if (!leftBlocked) {
+            targetDirX = perpX;
+            targetDirY = perpY;
+          } else if (!rightBlocked) {
+            targetDirX = -perpX;
+            targetDirY = -perpY;
+          } else {
+            const angle = Math.atan2(targetDirY, targetDirX);
+            const testAngles = [
+              angle - Math.PI / 4,
+              angle + Math.PI / 4,
+              angle - Math.PI / 2,
+              angle + Math.PI / 2,
+            ];
+            
+            let bestAngle = angle;
+            let bestDist = Infinity;
+            
+            for (const testAngle of testAngles) {
+              const testX = this.x + Math.cos(testAngle) * lookAheadDistance;
+              const testY = this.y + Math.sin(testAngle) * lookAheadDistance;
+              
+              if (!mapSystem.isPositionBlocked(testX, testY, this.radius)) {
+                const testDist = Math.sqrt(
+                  Math.pow(player.x - testX, 2) + Math.pow(player.y - testY, 2)
+                );
+                if (testDist < bestDist) {
+                  bestDist = testDist;
+                  bestAngle = testAngle;
+                }
+              }
+            }
+            
+            targetDirX = Math.cos(bestAngle);
+            targetDirY = Math.sin(bestAngle);
+          }
+        }
+      }
+      
+      const normalized = normalize(targetDirX, targetDirY);
       this.velocityX = normalized.x * this.speed;
       this.velocityY = normalized.y * this.speed;
       isMoving = true;
@@ -260,8 +340,74 @@ export class Enemy {
     this.knockbackY *= 0.85;
 
     // Update position with movement and knockback
-    this.x += (this.velocityX + this.knockbackX) * dt;
-    this.y += (this.velocityY + this.knockbackY) * dt;
+    if (mapSystem) {
+      const moveX = (this.velocityX + this.knockbackX) * dt;
+      const moveY = (this.velocityY + this.knockbackY) * dt;
+      
+      let newX = this.x + moveX;
+      let newY = this.y + moveY;
+      
+      const prevX = this.x;
+      const prevY = this.y;
+      
+      if (mapSystem.isPositionBlocked(newX, this.y, this.radius)) {
+        newX = this.x;
+        this.velocityX = 0;
+        this.knockbackX = 0;
+      }
+      
+      if (mapSystem.isPositionBlocked(this.x, newY, this.radius)) {
+        newY = this.y;
+        this.velocityY = 0;
+        this.knockbackY = 0;
+      }
+      
+      if (mapSystem.isPositionBlocked(newX, newY, this.radius)) {
+        const clamped = mapSystem.clampToBounds(newX, newY, this.radius);
+        newX = clamped.x;
+        newY = clamped.y;
+        
+        const actualDx = clamped.x - this.x;
+        const actualDy = clamped.y - this.y;
+        
+        if (Math.abs(actualDx) < Math.abs(moveX) * 0.3) {
+          this.velocityX = 0;
+          this.knockbackX = 0;
+        }
+        if (Math.abs(actualDy) < Math.abs(moveY) * 0.3) {
+          this.velocityY = 0;
+          this.knockbackY = 0;
+        }
+      }
+      
+      const finalClamped = mapSystem.clampToBounds(newX, newY, this.radius);
+      this.x = finalClamped.x;
+      this.y = finalClamped.y;
+      
+      const movedDistance = Math.sqrt(
+        Math.pow(this.x - prevX, 2) + Math.pow(this.y - prevY, 2)
+      );
+      
+      if (movedDistance < 0.1 && isMoving && dist > contactDistance) {
+        this.stuckTimer += dt;
+        if (this.stuckTimer > 0.5) {
+          const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * Math.PI / 2;
+          const escapeX = Math.cos(angle) * this.speed;
+          const escapeY = Math.sin(angle) * this.speed;
+          
+          if (!mapSystem.isPositionBlocked(this.x + escapeX * dt, this.y + escapeY * dt, this.radius)) {
+            this.velocityX = escapeX;
+            this.velocityY = escapeY;
+            this.stuckTimer = 0;
+          }
+        }
+      } else {
+        this.stuckTimer = 0;
+      }
+    } else {
+      this.x += (this.velocityX + this.knockbackX) * dt;
+      this.y += (this.velocityY + this.knockbackY) * dt;
+    }
 
     // Update timers
     if (this.hitFlashTime > 0) {

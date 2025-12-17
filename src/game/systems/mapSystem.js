@@ -46,31 +46,37 @@ export class MapSystem {
   }
 
   isPositionBlocked(worldX, worldY, radius = 0) {
-    const tile = this.worldToTile(worldX, worldY);
-    if (this.isTileBlocked(tile.x, tile.y)) {
-      return true;
+    if (radius <= 0) {
+      const tile = this.worldToTile(worldX, worldY);
+      return this.isTileBlocked(tile.x, tile.y);
     }
     
-    if (radius > 0) {
-      const checkTiles = [
-        { x: tile.x - 1, y: tile.y },
-        { x: tile.x + 1, y: tile.y },
-        { x: tile.x, y: tile.y - 1 },
-        { x: tile.x, y: tile.y + 1 },
-        { x: tile.x - 1, y: tile.y - 1 },
-        { x: tile.x + 1, y: tile.y - 1 },
-        { x: tile.x - 1, y: tile.y + 1 },
-        { x: tile.x + 1, y: tile.y + 1 },
-      ];
-      
-      for (const checkTile of checkTiles) {
-        const tileWorldX = checkTile.x * this.tileSize + this.tileSize / 2;
-        const tileWorldY = checkTile.y * this.tileSize + this.tileSize / 2;
-        const distance = Math.sqrt(
-          Math.pow(worldX - tileWorldX, 2) + Math.pow(worldY - tileWorldY, 2)
-        );
-        if (distance < radius && this.isTileBlocked(checkTile.x, checkTile.y)) {
-          return true;
+    const checkTiles = new Set();
+    const tile = this.worldToTile(worldX, worldY);
+    
+    const minTileX = Math.floor((worldX - radius) / this.tileSize);
+    const maxTileX = Math.floor((worldX + radius) / this.tileSize);
+    const minTileY = Math.floor((worldY - radius) / this.tileSize);
+    const maxTileY = Math.floor((worldY + radius) / this.tileSize);
+    
+    for (let tx = minTileX; tx <= maxTileX; tx++) {
+      for (let ty = minTileY; ty <= maxTileY; ty++) {
+        if (this.isTileBlocked(tx, ty)) {
+          const tileMinX = tx * this.tileSize;
+          const tileMaxX = (tx + 1) * this.tileSize;
+          const tileMinY = ty * this.tileSize;
+          const tileMaxY = (ty + 1) * this.tileSize;
+          
+          const closestX = Math.max(tileMinX, Math.min(worldX, tileMaxX));
+          const closestY = Math.max(tileMinY, Math.min(worldY, tileMaxY));
+          
+          const dx = worldX - closestX;
+          const dy = worldY - closestY;
+          const distanceSq = dx * dx + dy * dy;
+          
+          if (distanceSq < radius * radius) {
+            return true;
+          }
         }
       }
     }
@@ -133,20 +139,48 @@ export class MapSystem {
     let clampedX = Math.max(this.playableMinX + radius, Math.min(x, this.playableMaxX - radius));
     let clampedY = Math.max(this.playableMinY + radius, Math.min(y, this.playableMaxY - radius));
     
-    if (this.isPositionBlocked(clampedX, clampedY, radius)) {
-      const tile = this.worldToTile(clampedX, clampedY);
-      if (this.isTileBlocked(tile.x, tile.y)) {
-        const tileCenterX = tile.x * this.tileSize + this.tileSize / 2;
-        const tileCenterY = tile.y * this.tileSize + this.tileSize / 2;
-        const dx = clampedX - tileCenterX;
-        const dy = clampedY - tileCenterY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        if (distance < radius + this.tileSize / 2) {
-          const angle = Math.atan2(dy, dx);
-          clampedX = tileCenterX + Math.cos(angle) * (radius + this.tileSize / 2 + 1);
-          clampedY = tileCenterY + Math.sin(angle) * (radius + this.tileSize / 2 + 1);
+    if (!this.isPositionBlocked(clampedX, clampedY, radius)) {
+      return { x: clampedX, y: clampedY };
+    }
+    
+    const safeDistance = radius + 1;
+    const minTileX = Math.floor((clampedX - radius) / this.tileSize);
+    const maxTileX = Math.floor((clampedX + radius) / this.tileSize);
+    const minTileY = Math.floor((clampedY - radius) / this.tileSize);
+    const maxTileY = Math.floor((clampedY + radius) / this.tileSize);
+    
+    for (let tx = minTileX; tx <= maxTileX; tx++) {
+      for (let ty = minTileY; ty <= maxTileY; ty++) {
+        if (this.isTileBlocked(tx, ty)) {
+          const tileMinX = tx * this.tileSize;
+          const tileMaxX = (tx + 1) * this.tileSize;
+          const tileMinY = ty * this.tileSize;
+          const tileMaxY = (ty + 1) * this.tileSize;
+          
+          if (clampedX >= tileMinX - radius && clampedX <= tileMaxX + radius) {
+            if (clampedX < tileMinX + safeDistance) {
+              clampedX = tileMinX - safeDistance;
+            } else if (clampedX > tileMaxX - safeDistance) {
+              clampedX = tileMaxX + safeDistance;
+            }
+          }
+          
+          if (clampedY >= tileMinY - radius && clampedY <= tileMaxY + radius) {
+            if (clampedY < tileMinY + safeDistance) {
+              clampedY = tileMinY - safeDistance;
+            } else if (clampedY > tileMaxY - safeDistance) {
+              clampedY = tileMaxY + safeDistance;
+            }
+          }
         }
       }
+    }
+    
+    clampedX = Math.max(this.playableMinX + radius, Math.min(clampedX, this.playableMaxX - radius));
+    clampedY = Math.max(this.playableMinY + radius, Math.min(clampedY, this.playableMaxY - radius));
+    
+    if (this.isPositionBlocked(clampedX, clampedY, radius)) {
+      return { x: x, y: y };
     }
     
     return { x: clampedX, y: clampedY };
@@ -178,6 +212,22 @@ export class MapSystem {
     const y = this.playableMinY - cameraY;
 
     ctx.strokeRect(x, y, this.playableWidth, this.playableHeight);
+
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = "rgba(235, 115, 115, 0.7)";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 3]);
+
+    this.blockedTiles.forEach(tileKey => {
+      const [tileX, tileY] = tileKey.split(',').map(Number);
+      const worldX = tileX * this.tileSize;
+      const worldY = tileY * this.tileSize;
+      const screenX = worldX - cameraX;
+      const screenY = worldY - cameraY;
+
+      ctx.strokeRect(screenX, screenY, this.tileSize, this.tileSize);
+    });
 
     ctx.setLineDash([]);
   }

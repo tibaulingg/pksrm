@@ -403,8 +403,8 @@ export class GameEngine {
             let mapWidthInTiles, mapHeightInTiles, borderTiles, blockedTiles;
             
             if (levelConfig && levelConfig.map) {
-                mapWidthInTiles = levelConfig.map.width;
-                mapHeightInTiles = levelConfig.map.height;
+                mapWidthInTiles = levelConfig.map.width || Math.floor(img.width / this.mapTileSize);
+                mapHeightInTiles = levelConfig.map.height || Math.floor(img.height / this.mapTileSize);
                 borderTiles = levelConfig.map.borderTiles || 0;
                 blockedTiles = levelConfig.map.blockedTiles || [];
             } else {
@@ -687,7 +687,7 @@ export class GameEngine {
 
         // Update enemies
         for (let i = 0; i < this.enemies.length; i++) {
-            const projectileData = this.enemies[i].update(dt, this.player);
+            const projectileData = this.enemies[i].update(dt, this.player, this.mapSystem);
 
             // If enemy fired a projectile, add it to the projectiles array
             if (projectileData) {
@@ -707,7 +707,7 @@ export class GameEngine {
 
         // Update projectiles
         for (let i = 0; i < this.projectiles.length; i++) {
-            this.projectiles[i].update(dt, this.camera, this.canvas.width, this.canvas.height);
+            this.projectiles[i].update(dt, this.camera, this.canvas.width, this.canvas.height, this.mapSystem);
         }
 
         // Update XP orbs
@@ -961,9 +961,11 @@ export class GameEngine {
         if (this.mapImage && this.mapSystem) {
             const levelConfig = getLevel(levelKey);
             if (levelConfig.map) {
+                const mapWidthInTiles = levelConfig.map.width || Math.floor(this.mapImage.width / this.mapTileSize);
+                const mapHeightInTiles = levelConfig.map.height || Math.floor(this.mapImage.height / this.mapTileSize);
                 this.mapSystem.updateDimensions(
-                    levelConfig.map.width,
-                    levelConfig.map.height,
+                    mapWidthInTiles,
+                    mapHeightInTiles,
                     this.mapTileSize,
                     levelConfig.map.borderTiles || 0,
                     levelConfig.map.blockedTiles || []

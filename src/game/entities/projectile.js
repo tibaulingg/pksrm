@@ -100,16 +100,25 @@ export class Projectile {
    * @param {Object} camera - Camera object with x, y position
    * @param {number} screenWidth - Canvas width
    * @param {number} screenHeight - Canvas height
+   * @param {Object} mapSystem - Map system for collision detection
    */
-  update(dt, camera = null, screenWidth = null, screenHeight = null) {
+  update(dt, camera = null, screenWidth = null, screenHeight = null, mapSystem = null) {
     if (!this.active) return;
 
     // Update position
     const prevX = this.x;
     const prevY = this.y;
 
-    this.x += this.velocityX * dt;
-    this.y += this.velocityY * dt;
+    const newX = this.x + this.velocityX * dt;
+    const newY = this.y + this.velocityY * dt;
+
+    if (mapSystem && mapSystem.isPositionBlocked(newX, newY, this.radius)) {
+      this.active = false;
+      return;
+    }
+
+    this.x = newX;
+    this.y = newY;
 
     // Désactive si la distance parcourue dépasse la portée max
     if (this.maxDistance !== null) {
