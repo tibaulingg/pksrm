@@ -8,12 +8,18 @@ export const LEVEL_CONFIG = {
     name: "Verdant Forest",
     description: "A peaceful forest filled with grass-type Pokémon",
     difficulty: 1,
-    difficultyMultiplier: 1, // Enemy stats multiplier
-    hpGrowthRate: 0.005, // vitesse du scaling
-    hpGrowthPower: 1.2, // 🔥 puissance du scaling
-    maxHpMultiplier: 4, // plafond
-    spawnMultiplier: 1, // Spawn frequency multiplier
+    difficultyMultiplier: 1,
+    hpGrowthRate: 0.005,
+    hpGrowthPower: 1.2,
+    maxHpMultiplier: 4,
+    spawnMultiplier: 1,
     backgroundColor: "#307230ff",
+    map: {
+      width: 32,
+      height: 32,
+      borderTiles: 2,
+      blockedTiles: [],
+    },
     enemies: {
       ratata: {
         enabled: true,
@@ -45,12 +51,18 @@ export const LEVEL_CONFIG = {
     name: "Frozen Glacier",
     description: "An icy tundra with water-type Pokémon",
     difficulty: 3,
-    difficultyMultiplier: 1.5, // 30% stronger enemies
-    hpGrowthRate: 0.005, // vitesse du scaling
-    hpGrowthPower: 1.2, // 🔥 puissance du scaling
-    maxHpMultiplier: 4, // plafond
-    spawnMultiplier: 1, // Spawn frequency multiplier
+    difficultyMultiplier: 1.5,
+    hpGrowthRate: 0.005,
+    hpGrowthPower: 1.2,
+    maxHpMultiplier: 4,
+    spawnMultiplier: 1,
     backgroundColor: "#1a5c7a",
+    map: {
+      width: 64,
+      height: 64,
+      borderTiles: 2,
+      blockedTiles: [],
+    },
     enemies: {
       piplup: {
         enabled: true,
@@ -78,11 +90,19 @@ export const LEVEL_CONFIG = {
     description: "A hot volcanic area with fire-type Pokémon",
     difficulty: 5,
     difficultyMultiplier: 2,
-    hpGrowthRate: 0.005, // vitesse du scaling
-    hpGrowthPower: 1.2, // 🔥 puissance du scaling
-    maxHpMultiplier: 4, // plafond
-    spawnMultiplier: 1, // Spawn frequency multiplier
+    hpGrowthRate: 0.005,
+    hpGrowthPower: 1.2,
+    maxHpMultiplier: 4,
+    spawnMultiplier: 1,
     backgroundColor: "#660000",
+    map: {
+      width: 64,
+      height: 64,
+      borderTiles: 2,
+      blockedTiles: [
+        { x: 4, y: 4 },
+      ],
+    },
     enemies: {
       magmar: {
         enabled: true,

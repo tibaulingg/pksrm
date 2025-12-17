@@ -23,10 +23,10 @@ import { CharacterSelectOverlay } from "./ui/CharacterSelectOverlay.js";
 import { LevelSelectOverlay } from "./ui/LevelSelectOverlay.js";
 import { MainMenuOverlay } from "./ui/MainMenuOverlay.js";
 
-// Import tileset
 import tilesetImage from "../sprites/tileset.png";
 import tilesetToundra from "../sprites/tileset_toundra.png";
 import tilesetVolcano from "../sprites/tileset_volcano.png";
+import map1Image from "./assets/map_1.png";
 
 // Import character profile images
 import piplupProfile from "../sprites/piplup/profile.png";
@@ -177,7 +177,7 @@ export class GameEngine {
         this.particleManager = new ParticleManager();
         this.minimap = new Minimap(canvas.width, canvas.height);
         this.inventorySystem = new InventorySystem(canvas.width, canvas.height);
-        this.mapSystem = new MapSystem(12, 12, 32); // 64x64 tiles of 32 units each
+        this.mapSystem = new MapSystem(12, 12, 16);
 
         // Stats
         this.score = 0;
@@ -196,14 +196,17 @@ export class GameEngine {
         this.currentLevelUpIndex = 0; // Current level-up being displayed
         this.totalLevelsGained = 0; // Total levels gained in this session
 
-        // Tileset
         this.tilesetImage = null;
-        this.tileSize = 32; // Source tile size in the image (32x32)
-        this.tileScale = 2; // Scale factor for rendering (2x larger on screen)
-        this.tileGrassIndex = 0; // First tile (grass)
-        this.tileOutOfMapIndex = 4; // Last tile (out of map)
-        this.tileRotations = new Map(); // Store rotation for each tile position
+        this.tileSize = 32;
+        this.tileScale = 2;
+        this.tileGrassIndex = 0;
+        this.tileOutOfMapIndex = 4;
+        this.tileRotations = new Map();
         this.loadTileset();
+
+        this.mapImage = null;
+        this.mapTileSize = 16;
+        this.loadMapImage();
 
         // Setup input listeners
         this.setupInputListeners();
@@ -331,9 +334,8 @@ export class GameEngine {
                 this.levelSelectOverlay.update(this.input.mouse.x, this.input.mouse.y);
             }
 
-            // Check hover on upgrade cards
             if (this.levelUpPending) {
-                this.hoveredUpgradeIndex = this.levelUpOverlay.update(this.input.mouse.x, this.input.mouse.y, this.levelUpUpgrades);
+                this.hoveredUpgradeIndex = this.levelUpOverlay.update(this.input.mouse.x, this.input.mouse.y, this.levelUpUpgrades, this.deltaTime);
             }
         });
 
@@ -377,9 +379,6 @@ export class GameEngine {
         });
     }
 
-    /**
-     * Load tileset image
-     */
     loadTileset() {
         let imgSrc = tilesetImage;
         if (this.selectedLevel === "glacier" || this.selectedLevel === 2) {
@@ -393,6 +392,32 @@ export class GameEngine {
             this.tilesetImage = img;
         };
         img.src = imgSrc;
+    }
+
+    loadMapImage() {
+        const img = new Image();
+        img.onload = () => {
+            this.mapImage = img;
+            const levelConfig = this.selectedLevel ? getLevel(this.selectedLevel) : null;
+            
+            let mapWidthInTiles, mapHeightInTiles, borderTiles, blockedTiles;
+            
+            if (levelConfig && levelConfig.map) {
+                mapWidthInTiles = levelConfig.map.width;
+                mapHeightInTiles = levelConfig.map.height;
+                borderTiles = levelConfig.map.borderTiles || 0;
+                blockedTiles = levelConfig.map.blockedTiles || [];
+            } else {
+                mapWidthInTiles = Math.floor(img.width / this.mapTileSize);
+                mapHeightInTiles = Math.floor(img.height / this.mapTileSize);
+                borderTiles = 0;
+                blockedTiles = [];
+            }
+            
+            this.mapSystem.updateDimensions(mapWidthInTiles, mapHeightInTiles, this.mapTileSize, borderTiles, blockedTiles);
+            this.mapSystem.initialize();
+        };
+        img.src = map1Image;
     }
 
     /**
@@ -465,43 +490,26 @@ export class GameEngine {
         return rotation;
     }
 
-    /**
-     * Render tiles for the world background
-     * @param {number} cameraX - Camera X offset
-     * @param {number} cameraY - Camera Y offset
-     */
     renderTileBackground(cameraX, cameraY) {
-        const displaySize = this.tileSize * this.tileScale;
-
-        // Calculate which tiles are visible
-        const startTileX = Math.floor(cameraX / displaySize);
-        const startTileY = Math.floor(cameraY / displaySize);
-        const endTileX = startTileX + Math.ceil(this.canvas.width / displaySize) + 1;
-        const endTileY = startTileY + Math.ceil(this.canvas.height / displaySize) + 1;
-
-        for (let tileX = startTileX; tileX < endTileX; tileX++) {
-            for (let tileY = startTileY; tileY < endTileY; tileY++) {
-                // Screen position
-                const screenX = tileX * displaySize - cameraX;
-                const screenY = tileY * displaySize - cameraY;
-
-                // World coordinates (in world units, not tiles)
-                const worldX = tileX * this.tileSize;
-                const worldY = tileY * this.tileSize;
-
-                // Check if position is inside map
-                if (worldX >= 0 && worldX < this.mapSystem.width && worldY >= 0 && worldY < this.mapSystem.height) {
-                    // Draw grass tile with random rotation
-                    const rotation = this.getTileRotation(worldX, worldY);
-                    this.renderTile(this.tileGrassIndex, screenX, screenY, rotation);
-                } else {
-                    this.renderTile(this.tileOutOfMapIndex, screenX, screenY, 0);
-                }
-            }
+        if (!this.mapImage || !this.mapImage.complete) {
+            return;
         }
 
-        // Draw grid lines between tiles
-        this.renderTileGrid(cameraX, cameraY);
+        this.ctx.save();
+        this.ctx.imageSmoothingEnabled = false;
+
+        const screenX = -cameraX;
+        const screenY = -cameraY;
+
+        this.ctx.drawImage(
+            this.mapImage,
+            screenX,
+            screenY,
+            this.mapImage.width,
+            this.mapImage.height
+        );
+
+        this.ctx.restore();
     }
 
     /**
@@ -943,7 +951,6 @@ export class GameEngine {
      */
     selectLevel(levelKey) {
         if (!LEVEL_CONFIG[levelKey]) return;
-        // Update selected level AVANT d'appeler loadTileset/init
         this.selectedLevel = levelKey;
         this.loadTileset();
         this.songManager.startSong(this.selectedLevel);
@@ -951,7 +958,19 @@ export class GameEngine {
         this.showLevelSelect = false;
         this.hoveredLevel = null;
 
-        // Reinitialize the game with the selected character and level
+        if (this.mapImage && this.mapSystem) {
+            const levelConfig = getLevel(levelKey);
+            if (levelConfig.map) {
+                this.mapSystem.updateDimensions(
+                    levelConfig.map.width,
+                    levelConfig.map.height,
+                    this.mapTileSize,
+                    levelConfig.map.borderTiles || 0,
+                    levelConfig.map.blockedTiles || []
+                );
+            }
+        }
+
         this.init();
 
         // Start the game

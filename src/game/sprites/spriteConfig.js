@@ -17,200 +17,169 @@ import hurtChimchar from "../../sprites/chimchar/hurt.png";
 import moltresspriteSheet from "../../sprites/moltres/sprite.png";
 import magmarSpriteSheet from "../../sprites/magmar/sprite.png";
 
-export const spriteConfig = {
-  piplup: {
-    spriteSheet: piplupSpriteSheet,
+export function createSpriteConfig({
+  spriteSheet,
+  profileImage,
+  spriteWidth,
+  spriteHeight,
+  framesPerRow,
+  framesPerColumn = 8,
+  animationFrames = { idle: [0], walk: [0, 1, 2, 3] },
+  animationSpeed = 0.15,
+  scale = 1,
+  dominantColor,
+  hurtAnim = null
+}) {
+  const config = {
+    spriteSheet,
+    profileImage,
+    spriteWidth,
+    spriteHeight,
+    framesPerRow,
+    framesPerColumn,
+    animationFrames,
+    animationSpeed,
+    scale,
+    dominantColor,
+  };
+
+  if (hurtAnim) {
+    config.hurtAnim = createSpriteConfig(hurtAnim);
+  }
+
+  return config;
+}
+
+function processConfig(config) {
+  const processed = { ...config };
+  
+  if (config.spriteWidth && config.framesPerRow) {
+    processed.frameWidth = config.spriteWidth / config.framesPerRow;
+  }
+  
+  if (config.spriteHeight && config.framesPerColumn) {
+    processed.frameHeight = config.spriteHeight / config.framesPerColumn;
+  }
+  
+  if (config.hurtAnim) {
+    processed.hurtAnim = processConfig(config.hurtAnim);
+  }
+  
+  return processed;
+}
+
+const rawSpriteConfig = {
+  piplup: createSpriteConfig({
+    spriteSheet: '../../sprites/piplup/sprite.png',
     profileImage: "../../sprites/piplup/profile.png",
     spriteWidth: 96,
     spriteHeight: 256,
     framesPerRow: 4,
-    framesPerColumn: 8,
-    frameWidth: 24, // 96 / 4
-    frameHeight: 32, // 256 / 8
-    animationFrames: {
-      idle: [0],
-      walk: [0, 1, 2, 3], // Left to right frames
-    },
-    animationSpeed: 0.15, // seconds per frame
-    scale: 1,
-    dominantColor: "#4FC3F7", // Dominant color from Piplup sprite for particles
-    hurtAnim : {
-      hurtSpriteSheet: hurtPiplupSpriteSheet,
+    dominantColor: "#4FC3F7",
+    hurtAnim: {
+      spriteSheet: hurtPiplupSpriteSheet,
       spriteWidth: 80,
       spriteHeight: 448,
       framesPerRow: 2,
-      framesPerColumn: 8,
-      frameWidth: 40,
-      frameHeight: 56,
-      animationFrames: {
-        hurt: [0,1], // Left to right frames
-      },
-      animationSpeed: 0.2, // seconds per frame
-      scale: 1,
+      animationFrames: { hurt: [0, 1] },
+      animationSpeed: 0.2,
     }
-  },
-  turtwig: {
+  }),
+  turtwig: createSpriteConfig({
     spriteSheet: turtwigSpriteSheet,
     profileImage: "../../sprites/turtwig/profile.png",
     spriteWidth: 96,
     spriteHeight: 256,
     framesPerRow: 4,
-    framesPerColumn: 8,
-    frameWidth: 24, // 96 / 4
-    frameHeight: 32, // 256 / 8
-    animationFrames: {
-      idle: [0],
-      walk: [0, 1, 2, 3], // Left to right frames
-    },
-    animationSpeed: 0.15, // seconds per frame
-    scale: 1,
-    dominantColor: "#4E944F", // Dominant color from Turtwig sprite for particles
-    hurtAnim : {
-      hurtSpriteSheet: hurtTurwig,
+    dominantColor: "#4E944F",
+    hurtAnim: {
+      spriteSheet: hurtTurwig,
       spriteWidth: 64,
       spriteHeight: 384,
       framesPerRow: 2,
-      framesPerColumn: 8,
-      frameWidth: 32,
-      frameHeight: 48,
-      animationFrames: {
-        hurt: [0,1], // Left to right frames
-      },
-      animationSpeed: 0.2, // seconds per frame
-      scale: 1,
+      animationFrames: { hurt: [0, 1] },
+      animationSpeed: 0.2,
     }
-  },
-  chimchar: {
+  }),
+  chimchar: createSpriteConfig({
     spriteSheet: chimcharSpriteSheet,
     profileImage: "../../sprites/chimchar/profile.png",
     spriteWidth: 224,
     spriteHeight: 384,
     framesPerRow: 7,
-    framesPerColumn: 8,
-    frameWidth: 32, // 224 / 7
-    frameHeight: 48, // 384 / 8
-    animationFrames: {
-      idle: [0],
-      walk: [0, 1, 2, 3], // Left to right frames
-    },
-    animationSpeed: 0.1, // seconds per frame
-    scale: 1,
-    dominantColor: "#F57C00", // Dominant color from Chimchar sprite for particles
-    hurtAnim : {
-      hurtSpriteSheet: hurtChimchar,
+    animationSpeed: 0.1,
+    dominantColor: "#F57C00",
+    hurtAnim: {
+      spriteSheet: hurtChimchar,
       spriteWidth: 64,
       spriteHeight: 384,
       framesPerRow: 2,
-      framesPerColumn: 8,
-      frameWidth: 32,
-      frameHeight: 48,
-      animationFrames: {
-        hurt: [0,1], // Left to right frames
-      },
-      animationSpeed: 0.2, // seconds per frame
-      scale: 1,
+      animationFrames: { hurt: [0, 1] },
+      animationSpeed: 0.2,
     }
-  },
-  ratata: {
+  }),
+  ratata: createSpriteConfig({
     spriteSheet: ratataSpriteSheet,
     profileImage: "../../sprites/ratata/profile.png",
     spriteWidth: 336,
     spriteHeight: 320,
     framesPerRow: 7,
-    framesPerColumn: 8,
-    frameWidth: 48, // 336 / 7
-    frameHeight: 40, // 320 / 8
     animationFrames: {
       idle: [0],
-      walk: [0, 1, 2, 3, 4, 5, 6], // Left to right frames
+      walk: [0, 1, 2, 3, 4, 5, 6],
     },
-    animationSpeed: 0.15, // seconds per frame
-    scale: 1,
-    dominantColor: "#6f2691ff", // Dominant color from Ratata sprite for particles
-  },
-  caterpie: {
+    dominantColor: "#6f2691ff",
+  }),
+  caterpie: createSpriteConfig({
     spriteSheet: caterpieSpriteSheet,
     profileImage: "../../sprites/caterpie/profile.png",
     spriteWidth: 96,
     spriteHeight: 256,
     framesPerRow: 3,
-    framesPerColumn: 8,
-    frameWidth: 32, // 96 / 3
-    frameHeight: 32, // 256 / 8
     animationFrames: {
       idle: [0],
-      walk: [0, 1, 2], // Left to right frames
+      walk: [0, 1, 2],
     },
-    animationSpeed: 0.2, // seconds per frame
-    scale: 1,
-    dominantColor: "#78c850ff", // Dominant color from Caterpie sprite for particles
-  },
-  quagsire: {
+    animationSpeed: 0.2,
+    dominantColor: "#78c850ff",
+  }),
+  quagsire: createSpriteConfig({
     spriteSheet: quagsireSpriteSheet,
     profileImage: "../../sprites/quagsire/profile.png",
     spriteWidth: 192,
     spriteHeight: 320,
     framesPerRow: 4,
-    framesPerColumn: 8,
-    frameWidth: 48, 
-    frameHeight: 40, 
-    animationFrames: {
-      idle: [0],
-      walk: [0, 1, 2, 3], // Left to right frames
-    },
-    animationSpeed: 0.15, // seconds per frame
-    scale: 1,
-    dominantColor: "#5069daff", // Dominant color from Quagsire sprite for particles
-    hurtAnim : {
-      hurtSpriteSheet: hurtquagSireSpriteSheet,
+    dominantColor: "#5069daff",
+    hurtAnim: {
+      spriteSheet: hurtquagSireSpriteSheet,
       spriteWidth: 96,
       spriteHeight: 446,
       framesPerRow: 2,
-      framesPerColumn: 8,
-      frameWidth: 48,
-      frameHeight: 55.75,
-      animationFrames: {
-        hurt: [0,1], // Left to right frames
-      },
-      animationSpeed: 0.2, // seconds per frame
-      scale: 1,
+      animationFrames: { hurt: [0, 1] },
+      animationSpeed: 0.2,
     }
-  },
-  moltres: {
+  }),
+  moltres: createSpriteConfig({
     spriteSheet: moltresspriteSheet,
     profileImage: "../../sprites/moltres/profile.png",
     spriteWidth: 320,
     spriteHeight: 768,
     framesPerRow: 4,
-    framesPerColumn: 8,
-    frameWidth: 80, 
-    frameHeight: 96, 
-    animationFrames: {
-      idle: [0],
-      walk: [0, 1, 2, 3], // Left to right frames
-    },
-    animationSpeed: 0.15, // seconds per frame
-    scale: 1,
-    dominantColor: "#ec5a31ff", // Dominant color from moltress sprite for particles
-  },
-  magmar : {
+    dominantColor: "#ec5a31ff",
+  }),
+  magmar: createSpriteConfig({
     spriteSheet: magmarSpriteSheet,
     profileImage: "../../sprites/magmar/profile.png",
     spriteWidth: 128,
     spriteHeight: 384,
     framesPerRow: 4,
-    framesPerColumn: 8,
-    frameWidth: 32, 
-    frameHeight: 48,
-    animationFrames: {
-      idle: [0],
-      walk: [0, 1, 2, 3], // Left to right frames
-    },
-    animationSpeed: 0.15, // seconds per frame
-    scale: 1,
-    dominantColor: "#ff5722ff", // Dominant color from Magmar sprite for particles
-  },
+    dominantColor: "#ff5722ff",
+  }),
 };
+
+export const spriteConfig = Object.fromEntries(
+  Object.entries(rawSpriteConfig).map(([key, config]) => [key, processConfig(config)])
+);
 
 /**
  * Direction mappings for spritesheet rows

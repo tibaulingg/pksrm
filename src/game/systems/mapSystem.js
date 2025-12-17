@@ -4,25 +4,93 @@
  */
 
 export class MapSystem {
-  constructor(tilesWidth = 64, tilesHeight = 64, tileSize = 32) {
-    // Map size in tiles
+  constructor(tilesWidth = 64, tilesHeight = 64, tileSize = 32, playableOffsetTiles = 0, blockedTiles = []) {
     this.tilesWidth = tilesWidth;
     this.tilesHeight = tilesHeight;
-    this.tileSize = tileSize; // Size of each tile in world units
+    this.tileSize = tileSize;
 
-    // Actual map dimensions in world units
     this.width = tilesWidth * tileSize;
     this.height = tilesHeight * tileSize;
 
-    // Map padding/margin - area where entities can still be active
+    this.playableOffsetTiles = playableOffsetTiles;
+    this.blockedTiles = new Set();
+    this.setBlockedTiles(blockedTiles);
+    this.updatePlayableBounds();
+
     this.padding = 200;
 
-    // Generated features (for future expansion)
     this.features = [];
 
-    // Boundary properties
     this.borderColor = "rgba(100, 100, 150, 0.5)";
     this.borderWidth = 3;
+  }
+
+  setBlockedTiles(blockedTiles) {
+    this.blockedTiles.clear();
+    blockedTiles.forEach(tile => {
+      const key = `${tile.x},${tile.y}`;
+      this.blockedTiles.add(key);
+    });
+  }
+
+  isTileBlocked(tileX, tileY) {
+    const key = `${tileX},${tileY}`;
+    return this.blockedTiles.has(key);
+  }
+
+  worldToTile(worldX, worldY) {
+    return {
+      x: Math.floor(worldX / this.tileSize),
+      y: Math.floor(worldY / this.tileSize),
+    };
+  }
+
+  isPositionBlocked(worldX, worldY, radius = 0) {
+    const tile = this.worldToTile(worldX, worldY);
+    if (this.isTileBlocked(tile.x, tile.y)) {
+      return true;
+    }
+    
+    if (radius > 0) {
+      const checkTiles = [
+        { x: tile.x - 1, y: tile.y },
+        { x: tile.x + 1, y: tile.y },
+        { x: tile.x, y: tile.y - 1 },
+        { x: tile.x, y: tile.y + 1 },
+        { x: tile.x - 1, y: tile.y - 1 },
+        { x: tile.x + 1, y: tile.y - 1 },
+        { x: tile.x - 1, y: tile.y + 1 },
+        { x: tile.x + 1, y: tile.y + 1 },
+      ];
+      
+      for (const checkTile of checkTiles) {
+        const tileWorldX = checkTile.x * this.tileSize + this.tileSize / 2;
+        const tileWorldY = checkTile.y * this.tileSize + this.tileSize / 2;
+        const distance = Math.sqrt(
+          Math.pow(worldX - tileWorldX, 2) + Math.pow(worldY - tileWorldY, 2)
+        );
+        if (distance < radius && this.isTileBlocked(checkTile.x, checkTile.y)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+
+  updatePlayableBounds() {
+    const offset = this.playableOffsetTiles * this.tileSize;
+    this.playableMinX = offset;
+    this.playableMinY = offset;
+    this.playableMaxX = this.width - offset;
+    this.playableMaxY = this.height - offset;
+    this.playableWidth = this.playableMaxX - this.playableMinX;
+    this.playableHeight = this.playableMaxY - this.playableMinY;
+  }
+
+  setPlayableOffset(offsetTiles) {
+    this.playableOffsetTiles = offsetTiles;
+    this.updatePlayableBounds();
   }
 
   /**
@@ -42,85 +110,76 @@ export class MapSystem {
     // TODO: Add obstacles, terrain features, safe zones, etc.
   }
 
-  /**
-   * Check if a position is within map boundaries
-   * @param {number} x - X coordinate
-   * @param {number} y - Y coordinate
-   * @returns {boolean} True if within boundaries
-   */
   isWithinBounds(x, y) {
-    return x >= 0 && x <= this.width && y >= 0 && y <= this.height;
+    if (x < this.playableMinX || x > this.playableMaxX || y < this.playableMinY || y > this.playableMaxY) {
+      return false;
+    }
+    return !this.isPositionBlocked(x, y);
   }
 
-  /**
-   * Check if a position with radius is within playable area
-   * @param {number} x - X coordinate
-   * @param {number} y - Y coordinate
-   * @param {number} radius - Entity radius
-   * @returns {boolean} True if entirely within boundaries
-   */
   isWithinBoundsWithRadius(x, y, radius) {
-    return (
-      x - radius >= 0 &&
-      x + radius <= this.width &&
-      y - radius >= 0 &&
-      y + radius <= this.height
-    );
+    if (
+      x - radius < this.playableMinX ||
+      x + radius > this.playableMaxX ||
+      y - radius < this.playableMinY ||
+      y + radius > this.playableMaxY
+    ) {
+      return false;
+    }
+    return !this.isPositionBlocked(x, y, radius);
   }
 
-  /**
-   * Clamp a position to stay within bounds
-   * @param {number} x - X coordinate
-   * @param {number} y - Y coordinate
-   * @param {number} radius - Entity radius
-   * @returns {Object} Clamped {x, y} position
-   */
   clampToBounds(x, y, radius = 0) {
-    const clampedX = Math.max(radius, Math.min(x, this.width * 2 - radius));
-    const clampedY = Math.max(radius, Math.min(y, this.height * 2 - radius));
+    let clampedX = Math.max(this.playableMinX + radius, Math.min(x, this.playableMaxX - radius));
+    let clampedY = Math.max(this.playableMinY + radius, Math.min(y, this.playableMaxY - radius));
+    
+    if (this.isPositionBlocked(clampedX, clampedY, radius)) {
+      const tile = this.worldToTile(clampedX, clampedY);
+      if (this.isTileBlocked(tile.x, tile.y)) {
+        const tileCenterX = tile.x * this.tileSize + this.tileSize / 2;
+        const tileCenterY = tile.y * this.tileSize + this.tileSize / 2;
+        const dx = clampedX - tileCenterX;
+        const dy = clampedY - tileCenterY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < radius + this.tileSize / 2) {
+          const angle = Math.atan2(dy, dx);
+          clampedX = tileCenterX + Math.cos(angle) * (radius + this.tileSize / 2 + 1);
+          clampedY = tileCenterY + Math.sin(angle) * (radius + this.tileSize / 2 + 1);
+        }
+      }
+    }
+    
     return { x: clampedX, y: clampedY };
   }
 
-  /**
-   * Get a random position within the map
-   * @param {number} padding - Padding from edges
-   * @returns {Object} Random {x, y} position
-   */
   getRandomPosition(padding = this.padding) {
-    const x = padding + Math.random() * (this.width - padding * 2);
-    const y = padding + Math.random() * (this.height - padding * 2);
+    const minX = Math.max(this.playableMinX + padding, this.playableMinX);
+    const maxX = Math.min(this.playableMaxX - padding, this.playableMaxX);
+    const minY = Math.max(this.playableMinY + padding, this.playableMinY);
+    const maxY = Math.min(this.playableMaxY - padding, this.playableMaxY);
+    const x = minX + Math.random() * (maxX - minX);
+    const y = minY + Math.random() * (maxY - minY);
     return { x, y };
   }
 
-  /**
-   * Get map center
-   * @returns {Object} Center {x, y} position
-   */
   getCenter() {
     return {
-      x: this.width,
-      y: this.height,
+      x: (this.playableMinX + this.playableMaxX) / 2,
+      y: (this.playableMinY + this.playableMaxY) / 2,
     };
   }
 
-  /**
-   * Render map boundaries and border
-   * @param {CanvasRenderingContext2D} ctx - Canvas context
-   * @param {number} cameraX - Camera X offset
-   * @param {number} cameraY - Camera Y offset
-   */
   render(ctx, cameraX, cameraY) {
-    // Draw border outline
     ctx.strokeStyle = "rgba(235, 115, 115, 0.5)";
     ctx.lineWidth = this.borderWidth;
-    ctx.setLineDash([10, 5]); // Dashed line
+    ctx.setLineDash([10, 5]);
 
-    const x = -cameraX;
-    const y = -cameraY;
+    const x = this.playableMinX - cameraX;
+    const y = this.playableMinY - cameraY;
 
-    ctx.strokeRect(x, y, this.width * 2, this.height * 2);
+    ctx.strokeRect(x, y, this.playableWidth, this.playableHeight);
 
-    ctx.setLineDash([]); // Reset line dash
+    ctx.setLineDash([]);
   }
 
   /**
@@ -144,5 +203,20 @@ export class MapSystem {
   reset() {
     this.features = [];
     this.initialize();
+  }
+
+  updateDimensions(tilesWidth, tilesHeight, tileSize, playableOffsetTiles = null, blockedTiles = null) {
+    this.tilesWidth = tilesWidth;
+    this.tilesHeight = tilesHeight;
+    this.tileSize = tileSize;
+    this.width = tilesWidth * tileSize;
+    this.height = tilesHeight * tileSize;
+    if (playableOffsetTiles !== null) {
+      this.playableOffsetTiles = playableOffsetTiles;
+    }
+    if (blockedTiles !== null) {
+      this.setBlockedTiles(blockedTiles);
+    }
+    this.updatePlayableBounds();
   }
 }
